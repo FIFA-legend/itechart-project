@@ -1,7 +1,7 @@
 package com.itechart.project.repository
 
 import cats.effect.Sync
-import com.itechart.project.domain.auth.{Email, EncryptedPassword, Role, UserId, Username}
+import com.itechart.project.domain.user.{Email, EncryptedPassword, Role, UserId, Username}
 import com.itechart.project.http.auth.users.UserWithPassword
 import com.itechart.project.repository.impl.DoobieUserRepository
 import doobie.util.transactor.Transactor
@@ -12,5 +12,6 @@ trait UserRepository[F[_]] {
 }
 
 object UserRepository {
-  def of[F[_]: Sync](transactor: Transactor[F]): DoobieUserRepository[F] = new DoobieUserRepository[F](transactor)
+  def of[F[_]: Sync](transactor: Transactor[F]): DoobieUserRepository[F] =
+    new DoobieUserRepository[F](transactor)
 }

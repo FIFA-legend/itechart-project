@@ -1,6 +1,6 @@
 package com.itechart.project.http.auth
 
-import com.itechart.project.domain.auth.{EncryptedPassword, UserId, Username}
+import com.itechart.project.domain.user.{EncryptedPassword, UserId, Username}
 import dev.profunktor.auth.jwt.JwtSymmetricAuth
 import io.circe.generic.JsonCodec
 

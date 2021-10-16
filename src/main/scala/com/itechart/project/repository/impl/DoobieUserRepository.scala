@@ -2,7 +2,8 @@ package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
 import cats.implicits.toFunctorOps
-import com.itechart.project.domain.auth.{AuthorizedUser, Email, EncryptedPassword, Role, UserId, Username}
+import com.itechart.project.domain.user.{AuthorizedUser, Email, EncryptedPassword, QueryUser, Role, UserId, Username}
+import com.itechart.project.repository.impl.meta.MetaImplicits._
 import com.itechart.project.http.auth.users.UserWithPassword
 import com.itechart.project.repository.UserRepository
 import doobie.Transactor
@@ -12,7 +13,7 @@ class DoobieUserRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
   override def find(username: Username): F[Option[UserWithPassword]] = {
     val fragment = fr"SELECT * FROM users WHERE username = $username"
     fragment
-      .query[AuthorizedUser]
+      .query[QueryUser]
       .option
       .transact(transactor)
       .map {
@@ -24,7 +25,7 @@ class DoobieUserRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
 
   override def create(username: Username, password: EncryptedPassword, email: Email): F[UserId] = {
     val fragment =
-      fr"INSERT INTO users (username, password, email, role) VALUES ($username, $password, $email, ${Role.Client})"
-    fragment.update.withUniqueGeneratedKeys[Long]("id").map(UserId).transact(transactor)
+      fr"INSERT INTO users (username, password, email) VALUES ($username, $password, $email)"
+    fragment.update.withUniqueGeneratedKeys[UserId]("id").transact(transactor)
   }
 }

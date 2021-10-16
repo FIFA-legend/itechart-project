@@ -2,9 +2,8 @@ package com.itechart.project.authentication
 
 import cats.effect.Sync
 import cats.syntax.all._
-import eu.timepit.refined.auto._
 import com.itechart.project.configuration.ConfigurationTypes.PasswordSalt
-import com.itechart.project.domain.auth.{EncryptedPassword, Password}
+import com.itechart.project.domain.user.{EncryptedPassword, Password}
 
 import java.security.SecureRandom
 import java.util.Base64

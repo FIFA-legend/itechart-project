@@ -6,10 +6,10 @@ import cats.implicits._
 import cats.syntax.all._
 import com.itechart.project.authentication.{Crypto, Token}
 import com.itechart.project.configuration.ConfigurationTypes.TokenExpiration
-import com.itechart.project.domain.auth.UserAuthenticationError.{InvalidPassword, UserNotFound, UsernameInUse}
-import com.itechart.project.domain.auth.{Email, Password, Username}
+import com.itechart.project.domain.user.UserAuthenticationError.{InvalidPassword, UserNotFound, UsernameInUse}
+import com.itechart.project.domain.user.{Email, Password, Username}
 import com.itechart.project.http.auth.users._
-import com.itechart.project.repository.UserRepository
+//import com.itechart.project.repository.UserRepository
 import dev.profunktor.auth.jwt.JwtToken
 import dev.profunktor.redis4cats.RedisCommands
 import pdi.jwt.JwtClaim
@@ -18,7 +18,7 @@ import io.circe.syntax._
 
 import scala.tools.nsc.tasty.SafeEq
 
-trait UsersAuth[F[_], A] {
+/*trait UsersAuth[F[_], A] {
   def findUser(token: JwtToken)(claim: JwtClaim): F[Option[A]]
 }
 
@@ -113,4 +113,4 @@ object Auth {
       redis.del(userToken.value.show) *> redis.del(username.value.show).void
     }
   }
-}
+}*/
