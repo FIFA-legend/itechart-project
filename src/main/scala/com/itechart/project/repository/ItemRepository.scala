@@ -1,19 +1,20 @@
 package com.itechart.project.repository
 
 import cats.effect.Sync
-import com.itechart.project.domain.item.{Item, ItemId}
-import com.itechart.project.domain.subscription.{Category, Supplier}
+import com.itechart.project.domain.category.DatabaseCategory
+import com.itechart.project.domain.item.{DatabaseItem, ItemId}
+import com.itechart.project.domain.supplier.DatabaseSupplier
 import com.itechart.project.repository.impl.DoobieItemRepository
 import doobie.util.transactor.Transactor
 
 trait ItemRepository[F[_]] {
-  def all: F[List[Item]]
-  def findById(id:                ItemId):   F[Option[Item]]
-  def findAllByCategory(category: Category): F[List[Item]]
-  def findAllBySupplier(supplier: Supplier): F[List[Item]]
-  def create(item:                Item):     F[ItemId]
-  def update(item:                Item):     F[Int]
-  def delete(itemId:              ItemId):   F[Int]
+  def all: F[List[DatabaseItem]]
+  def findById(id:                ItemId):           F[Option[DatabaseItem]]
+  def findAllByCategory(category: DatabaseCategory): F[List[DatabaseItem]]
+  def findAllBySupplier(supplier: DatabaseSupplier): F[List[DatabaseItem]]
+  def create(item:                DatabaseItem):     F[ItemId]
+  def update(item:                DatabaseItem):     F[Int]
+  def delete(itemId:              ItemId):           F[Int]
 }
 
 object ItemRepository {

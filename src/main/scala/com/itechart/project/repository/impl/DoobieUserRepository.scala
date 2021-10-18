@@ -2,7 +2,7 @@ package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
 import cats.implicits.toFunctorOps
-import com.itechart.project.domain.user.{AuthorizedUser, Email, EncryptedPassword, QueryUser, Role, UserId, Username}
+import com.itechart.project.domain.user.{AuthorizedUser, DatabaseUser, Email, EncryptedPassword, Role, UserId, Username}
 import com.itechart.project.repository.impl.meta.MetaImplicits._
 import com.itechart.project.http.auth.users.UserWithPassword
 import com.itechart.project.repository.UserRepository
@@ -13,7 +13,7 @@ class DoobieUserRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
   override def find(username: Username): F[Option[UserWithPassword]] = {
     val fragment = fr"SELECT * FROM users WHERE username = $username"
     fragment
-      .query[QueryUser]
+      .query[DatabaseUser]
       .option
       .transact(transactor)
       .map {

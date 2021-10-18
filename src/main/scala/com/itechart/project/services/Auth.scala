@@ -18,6 +18,7 @@ import io.circe.syntax._
 
 import scala.tools.nsc.tasty.SafeEq
 
+/*
 trait UsersAuth[F[_], A] {
   def findUser(token: JwtToken)(claim: JwtClaim): F[Option[A]]
 }
@@ -114,3 +115,4 @@ object Auth {
     }
   }
 }
+ */

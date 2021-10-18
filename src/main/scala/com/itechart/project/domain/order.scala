@@ -19,6 +19,12 @@ object order {
     final case object Delivered extends DeliveryStatus
   }
 
+  final case class DatabaseOrder(
+    id:     OrderId,
+    total:  Money,
+    status: DeliveryStatus
+  )
+
   final case class Order(
     id:     OrderId,
     total:  Money,

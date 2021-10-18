@@ -10,11 +10,11 @@ object users {
   final case class CourierJwtAuth(value: JwtSymmetricAuth)
   final case class ClientJwtAuth(value: JwtSymmetricAuth)
 
-  @JsonCodec case class User(id: UserId, username: Username)
-  @JsonCodec final case class UserWithPassword(id: UserId, username: Username, password: EncryptedPassword)
+  case class User(id: UserId, username: Username)
+  final case class UserWithPassword(id: UserId, username: Username, password: EncryptedPassword)
 
-  @JsonCodec final case class ManagerUser(value: User)
-  @JsonCodec final case class CourierUser(value: User)
-  @JsonCodec final case class ClientUser(value: User)
+  final case class ManagerUser(value: User)
+  final case class CourierUser(value: User)
+  final case class ClientUser(value: User)
 
 }

@@ -1,7 +1,7 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
-import com.itechart.project.domain.subscription.Supplier
+import com.itechart.project.domain.supplier.DatabaseSupplier
 import com.itechart.project.repository.SupplierRepository
 import com.itechart.project.repository.impl.meta.MetaImplicits._
 import doobie.Transactor
@@ -15,27 +15,27 @@ class DoobieSupplierRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
   private val setSupplier:    Fragment = fr"UPDATE suppliers"
   private val deleteSupplier: Fragment = fr"DELETE FROM suppliers"
 
-  override def all: F[List[Supplier]] = {
+  override def all: F[List[DatabaseSupplier]] = {
     selectSupplier
-      .query[Supplier]
+      .query[DatabaseSupplier]
       .to[List]
       .transact(transactor)
   }
 
-  override def findById(id: Long): F[Option[Supplier]] = {
+  override def findById(id: Long): F[Option[DatabaseSupplier]] = {
     (selectSupplier ++ fr"WHERE id = $id")
-      .query[Supplier]
+      .query[DatabaseSupplier]
       .option
       .transact(transactor)
   }
 
-  override def create(supplier: Supplier): F[Long] = {
+  override def create(supplier: DatabaseSupplier): F[Long] = {
     (insertSupplier ++ fr"VALUES (${supplier.name})").update
       .withUniqueGeneratedKeys[Long]()
       .transact(transactor)
   }
 
-  override def update(supplier: Supplier): F[Int] = {
+  override def update(supplier: DatabaseSupplier): F[Int] = {
     (setSupplier ++ fr"SET name = ${supplier.name} WHERE id = ${supplier.id}").update.run
       .transact(transactor)
   }

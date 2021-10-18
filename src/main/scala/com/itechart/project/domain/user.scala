@@ -1,24 +1,22 @@
 package com.itechart.project.domain
 
-import com.itechart.project.domain.item.Item
-import com.itechart.project.domain.subscription.{Category, Supplier}
+import com.itechart.project.domain.category.DatabaseCategory
+import com.itechart.project.domain.item.DatabaseItem
+import com.itechart.project.domain.supplier.DatabaseSupplier
 import enumeratum.{CirceEnum, Enum, EnumEntry}
-import eu.timepit.refined.{refineV, W}
+import eu.timepit.refined.W
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.MatchesRegex
-import io.circe.{Codec, Decoder, Encoder}
-import io.circe.generic.JsonCodec
-import io.circe.generic.extras.semiauto.deriveEnumerationCodec
 
 object user {
 
-  @JsonCodec final case class UserId(value: Long)
+  final case class UserId(value: Long)
 
-  @JsonCodec final case class Username(value: String)
+  final case class Username(value: String)
 
-  @JsonCodec final case class Password(value: String)
+  final case class Password(value: String)
 
-  @JsonCodec final case class EncryptedPassword(value: String)
+  final case class EncryptedPassword(value: String)
 
   type Email = String Refined MatchesRegex[W.`"^[A-Za-z0-9]+@[A-Za-z0-9]+.[A-Za-z0-9]+$"`.T]
 
@@ -32,26 +30,23 @@ object user {
     final case object Client extends Role
   }
 
-  implicit val emailEncoder: Encoder[Email] = Encoder.encodeString.contramap[Email](_.toString)
-  implicit val emailDecoder: Decoder[Email] = Decoder.decodeString.emap[Email](str => refineV(str))
-
-  @JsonCodec final case class AuthorizedUser(
-    id:                   UserId,
-    username:             Username,
-    password:             EncryptedPassword,
-    email:                Email,
-    role:                 Role,
-    availableItems:       List[Item],
-    subscribedSuppliers:  List[Supplier],
-    subscribedCategories: List[Category]
-  )
-
-  final case class QueryUser(
+  final case class DatabaseUser(
     id:       UserId,
     username: Username,
     password: EncryptedPassword,
     email:    Email,
     role:     Role
+  )
+
+  final case class AuthorizedUser(
+    id:                   UserId,
+    username:             Username,
+    password:             EncryptedPassword,
+    email:                Email,
+    role:                 Role,
+    availableItems:       List[DatabaseItem],
+    subscribedSuppliers:  List[DatabaseSupplier],
+    subscribedCategories: List[DatabaseCategory]
   )
 
   sealed trait UserAuthenticationError extends Throwable

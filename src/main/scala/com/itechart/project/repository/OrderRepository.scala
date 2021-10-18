@@ -1,11 +1,9 @@
 package com.itechart.project.repository
 
 import cats.effect.Sync
-import com.itechart.project.domain.item.{Item, ItemId}
 import com.itechart.project.domain.order.{Order, OrderId}
-import com.itechart.project.domain.subscription.{Category, Supplier}
 import com.itechart.project.domain.user.AuthorizedUser
-import com.itechart.project.repository.impl.{DoobieItemRepository, DoobieOrderRepository}
+import com.itechart.project.repository.impl.DoobieOrderRepository
 import doobie.util.transactor.Transactor
 
 trait OrderRepository[F[_]] {

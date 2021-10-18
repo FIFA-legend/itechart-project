@@ -19,58 +19,84 @@ CREATE TABLE IF NOT EXISTS suppliers (
     PRIMARY KEY(id)
 );
 
+CREATE TABLE IF NOT EXISTS users_categories (
+    id BIGINT AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    category_id BIGINT NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+
+CREATE TABLE IF NOT EXISTS users_suppliers (
+    id BIGINT AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    supplier_id BIGINT NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+);
+
 CREATE TABLE IF NOT EXISTS items (
     id BIGINT AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL,
     description TEXT NOT NULL,
-    amount INT,
+    amount INT NOT NULL,
     price DECIMAL(15,2) NOT NULL,
     status ENUM ('IN_PROCESSING', 'AVAILABLE', 'NOT_AVAILABLE') DEFAULT 'IN_PROCESSING',
-    category_id BIGINT,
-    supplier_id BIGINT,
+    supplier_id BIGINT NOT NULL,
     PRIMARY KEY(id),
-    FOREIGN KEY (category_id) REFERENCES categories(id),
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+);
+
+CREATE TABLE IF NOT EXISTS items_categories (
+    id BIGINT AUTO_INCREMENT,
+    item_id BIGINT NOT NULL,
+    category_id BIGINT NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY (item_id) REFERENCES items(id),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+
+CREATE TABLE IF NOT EXISTS parties (
+    id BIGINT AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL,
+    PRIMARY KEY(id)
+);
+
+CREATE TABLE IF NOT EXISTS users_parties (
+    id BIGINT AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    party_id BIGINT NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (party_id) REFERENCES parties(id)
+);
+
+CREATE TABLE IF NOT EXISTS items_parties (
+    id BIGINT AUTO_INCREMENT,
+    item_id BIGINT NOT NULL,
+    party_id BIGINT NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY (item_id) REFERENCES items(id),
+    FOREIGN KEY (party_id) REFERENCES parties(id)
 );
 
 CREATE TABLE IF NOT EXISTS orders (
     id BIGINT AUTO_INCREMENT,
     total DECIMAL(15,2) NOT NULL,
     status ENUM ('ORDERED', 'ASSIGNED', 'DELIVERED') DEFAULT 'ORDERED',
-    user_id BIGINT,
-    PRIMARY KEY(id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    PRIMARY KEY(id)
 );
 
-CREATE TABLE IF NOT EXISTS users_categories (
-    user_id BIGINT,
-    category_id BIGINT,
-    PRIMARY KEY(user_id, category_id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-	FOREIGN KEY (category_id) REFERENCES categories(id)
-);
-
-CREATE TABLE IF NOT EXISTS users_suppliers (
-    user_id BIGINT,
-    supplier_id BIGINT,
-    PRIMARY KEY(user_id, supplier_id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
-);
-
-CREATE TABLE IF NOT EXISTS users_items (
-    user_id BIGINT,
-    item_id BIGINT,
-    PRIMARY KEY(user_id, item_id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (item_id) REFERENCES items(id)
-);
-
-CREATE TABLE IF NOT EXISTS orders_items (
+CREATE TABLE IF NOT EXISTS carts (
+    id BIGINT AUTO_INCREMENT,
+    quantity INT NOT NULL,
+    item_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
     order_id BIGINT,
-    item_id BIGINT,
-    quantity INT,
-    PRIMARY KEY(order_id, item_id),
-    FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (item_id) REFERENCES items(id)
+    PRIMARY KEY(id),
+    FOREIGN KEY (item_id) REFERENCES items(id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (order_id) REFERENCES orders(id)
 );

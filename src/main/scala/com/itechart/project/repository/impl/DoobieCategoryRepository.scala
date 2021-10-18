@@ -1,7 +1,7 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
-import com.itechart.project.domain.subscription.Category
+import com.itechart.project.domain.category.DatabaseCategory
 import com.itechart.project.repository.CategoryRepository
 import com.itechart.project.repository.impl.meta.MetaImplicits._
 import doobie.Transactor
@@ -15,27 +15,27 @@ class DoobieCategoryRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
   private val setCategory:    Fragment = fr"UPDATE categories"
   private val deleteCategory: Fragment = fr"DELETE FROM categories"
 
-  override def all: F[List[Category]] = {
+  override def all: F[List[DatabaseCategory]] = {
     selectCategory
-      .query[Category]
+      .query[DatabaseCategory]
       .to[List]
       .transact(transactor)
   }
 
-  override def findById(id: Long): F[Option[Category]] = {
+  override def findById(id: Long): F[Option[DatabaseCategory]] = {
     (selectCategory ++ fr"WHERE id = $id")
-      .query[Category]
+      .query[DatabaseCategory]
       .option
       .transact(transactor)
   }
 
-  override def create(category: Category): F[Long] = {
+  override def create(category: DatabaseCategory): F[Long] = {
     (insertCategory ++ fr"VALUES (${category.name})").update
       .withUniqueGeneratedKeys[Long]()
       .transact(transactor)
   }
 
-  override def update(category: Category): F[Int] = {
+  override def update(category: DatabaseCategory): F[Int] = {
     (setCategory ++ fr"SET name = ${category.name} WHERE id = ${category.id}").update.run
       .transact(transactor)
   }

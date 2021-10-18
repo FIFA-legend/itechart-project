@@ -1,8 +1,9 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
-import com.itechart.project.domain.item.{Item, ItemId}
-import com.itechart.project.domain.subscription.{Category, Supplier}
+import com.itechart.project.domain.category.DatabaseCategory
+import com.itechart.project.domain.item.{DatabaseItem, ItemId}
+import com.itechart.project.domain.supplier.DatabaseSupplier
 import com.itechart.project.repository.ItemRepository
 import com.itechart.project.repository.impl.meta.MetaImplicits._
 import doobie.Transactor
@@ -12,51 +13,51 @@ import doobie.util.fragment.Fragment
 class DoobieItemRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transactor[F]) extends ItemRepository[F] {
   private val selectItem: Fragment = fr"SELECT * FROM items"
   private val insertItem: Fragment =
-    fr"INSERT INTO items (name, description, amount, price, status, category_id, supplier_id)"
+    fr"INSERT INTO items (name, description, amount, price, status, supplier_id)"
   private val setItem:    Fragment = fr"UPDATE items"
   private val deleteItem: Fragment = fr"DELETE FROM items"
 
-  override def all: F[List[Item]] = {
+  override def all: F[List[DatabaseItem]] = {
     selectItem
-      .query[Item]
+      .query[DatabaseItem]
       .to[List]
       .transact(transactor)
   }
 
-  override def findById(id: ItemId): F[Option[Item]] = {
+  override def findById(id: ItemId): F[Option[DatabaseItem]] = {
     (selectItem ++ fr"WHERE id = $id")
-      .query[Item]
+      .query[DatabaseItem]
       .option
       .transact(transactor)
   }
 
-  override def findAllByCategory(category: Category): F[List[Item]] = {
+  override def findAllByCategory(category: DatabaseCategory): F[List[DatabaseItem]] = {
     (selectItem ++ fr"WHERE category_id = ${category.id}")
-      .query[Item]
+      .query[DatabaseItem]
       .to[List]
       .transact(transactor)
   }
 
-  override def findAllBySupplier(supplier: Supplier): F[List[Item]] = {
+  override def findAllBySupplier(supplier: DatabaseSupplier): F[List[DatabaseItem]] = {
     (selectItem ++ fr"WHERE supplier_id = ${supplier.id}")
-      .query[Item]
+      .query[DatabaseItem]
       .to[List]
       .transact(transactor)
   }
 
-  override def create(item: Item): F[ItemId] = {
+  override def create(item: DatabaseItem): F[ItemId] = {
     (insertItem ++
       fr"VALUES (${item.name}, ${item.description}, ${item.amount}, " ++
-      fr"${item.price}, ${item.status}, ${item.category}, ${item.supplier})").update
+      fr"${item.price}, ${item.status}, ${item.supplier})").update
       .withUniqueGeneratedKeys[ItemId]()
       .transact(transactor)
   }
 
-  override def update(item: Item): F[Int] = {
+  override def update(item: DatabaseItem): F[Int] = {
     (setItem ++
       fr"SET name = ${item.name}, description = ${item.description}, " ++
       fr"amount = ${item.amount}, price = ${item.price}, " ++
-      fr"status = ${item.status}, category_id = ${item.category}, supplier_id = ${item.supplier}").update.run
+      fr"status = ${item.status}, supplier_id = ${item.supplier}").update.run
       .transact(transactor)
   }
 
