@@ -1,7 +1,9 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
-import com.itechart.project.domain.category.DatabaseCategory
+import com.itechart.project.domain.category.{CategoryId, DatabaseCategory}
+import com.itechart.project.domain.item.DatabaseItem
+import com.itechart.project.domain.user.DatabaseUser
 import com.itechart.project.repository.CategoryRepository
 import com.itechart.project.repository.impl.meta.MetaImplicits._
 import doobie.Transactor
@@ -22,16 +24,34 @@ class DoobieCategoryRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
       .transact(transactor)
   }
 
-  override def findById(id: Long): F[Option[DatabaseCategory]] = {
+  override def findById(id: CategoryId): F[Option[DatabaseCategory]] = {
     (selectCategory ++ fr"WHERE id = $id")
       .query[DatabaseCategory]
       .option
       .transact(transactor)
   }
 
-  override def create(category: DatabaseCategory): F[Long] = {
+  override def findByUser(user: DatabaseUser): F[List[DatabaseCategory]] = {
+    (selectCategory ++ fr"INNER JOIN users_subscriptions_on_categories"
+      ++ fr"ON categories.id = users_subscriptions_on_categories.category_id"
+      ++ fr"WHERE users_subscriptions_on_categories.user_id = ${user.id}")
+      .query[DatabaseCategory]
+      .to[List]
+      .transact(transactor)
+  }
+
+  override def findByItem(item: DatabaseItem): F[List[DatabaseCategory]] = {
+    (selectCategory ++ fr"INNER JOIN items_categories"
+      ++ fr"ON categories.id = items_categories.category_id"
+      ++ fr"WHERE items_categories.item_id = ${item.id}")
+      .query[DatabaseCategory]
+      .to[List]
+      .transact(transactor)
+  }
+
+  override def create(category: DatabaseCategory): F[CategoryId] = {
     (insertCategory ++ fr"VALUES (${category.name})").update
-      .withUniqueGeneratedKeys[Long]()
+      .withUniqueGeneratedKeys[CategoryId]()
       .transact(transactor)
   }
 
@@ -40,7 +60,7 @@ class DoobieCategoryRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
       .transact(transactor)
   }
 
-  override def delete(id: Long): F[Int] = {
+  override def delete(id: CategoryId): F[Int] = {
     (deleteCategory ++ fr"WHERE id = $id").update.run
       .transact(transactor)
   }

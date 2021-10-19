@@ -1,6 +1,7 @@
 package com.itechart.project.repository.impl.meta
 
-import com.itechart.project.domain.item.{Amount, AvailabilityStatus, ItemDescription}
+import com.itechart.project.domain.cart.Quantity
+import com.itechart.project.domain.item.{Amount, AvailabilityStatus}
 import com.itechart.project.domain.order.DeliveryStatus
 import com.itechart.project.domain.user.{Email, Role}
 import com.itechart.project.util.RefinedConversion.convertParameter
@@ -25,6 +26,9 @@ object MetaImplicits {
 
   implicit val amountMeta: Meta[Amount] =
     Meta[String].timap(str => convertParameter[Int, GreaterEqual[0]](str.toInt, Int.MaxValue))(_.toString())
+
+  implicit val quantityMeta: Meta[Quantity] =
+    Meta[String].timap(str => convertParameter[Int, GreaterEqual[1]](str.toInt, Int.MaxValue))(_.toString())
 
   implicit val priceMeta: Meta[Money] =
     Meta[String].timap(str => Money.apply(BigDecimal(str), USD))(_.toString())

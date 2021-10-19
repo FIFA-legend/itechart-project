@@ -1,7 +1,8 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
-import com.itechart.project.domain.supplier.DatabaseSupplier
+import com.itechart.project.domain.supplier.{DatabaseSupplier, SupplierId}
+import com.itechart.project.domain.user.DatabaseUser
 import com.itechart.project.repository.SupplierRepository
 import com.itechart.project.repository.impl.meta.MetaImplicits._
 import doobie.Transactor
@@ -22,16 +23,25 @@ class DoobieSupplierRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
       .transact(transactor)
   }
 
-  override def findById(id: Long): F[Option[DatabaseSupplier]] = {
+  override def findById(id: SupplierId): F[Option[DatabaseSupplier]] = {
     (selectSupplier ++ fr"WHERE id = $id")
       .query[DatabaseSupplier]
       .option
       .transact(transactor)
   }
 
-  override def create(supplier: DatabaseSupplier): F[Long] = {
+  override def findByUser(user: DatabaseUser): F[List[DatabaseSupplier]] = {
+    (selectSupplier ++ fr"INNER JOIN users_subscriptions_on_suppliers"
+      ++ fr"ON suppliers.id = users_subscriptions_on_suppliers.supplier_id"
+      ++ fr"WHERE users_subscriptions_on_suppliers.user_id = ${user.id}")
+      .query[DatabaseSupplier]
+      .to[List]
+      .transact(transactor)
+  }
+
+  override def create(supplier: DatabaseSupplier): F[SupplierId] = {
     (insertSupplier ++ fr"VALUES (${supplier.name})").update
-      .withUniqueGeneratedKeys[Long]()
+      .withUniqueGeneratedKeys[SupplierId]()
       .transact(transactor)
   }
 
@@ -40,7 +50,7 @@ class DoobieSupplierRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
       .transact(transactor)
   }
 
-  override def delete(id: Long): F[Int] = {
+  override def delete(id: SupplierId): F[Int] = {
     (deleteSupplier ++ fr"WHERE id = $id").update.run
       .transact(transactor)
   }
