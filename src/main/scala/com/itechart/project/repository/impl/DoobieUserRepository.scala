@@ -1,31 +1,101 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
-import cats.implicits.toFunctorOps
-import com.itechart.project.domain.user.{AuthorizedUser, DatabaseUser, Email, EncryptedPassword, Role, UserId, Username}
+import com.itechart.project.domain.category.DatabaseCategory
+import com.itechart.project.domain.group.DatabaseGroup
+import com.itechart.project.domain.item.DatabaseItem
+import com.itechart.project.domain.supplier.DatabaseSupplier
+import com.itechart.project.domain.user.{DatabaseUser, UserId, Username}
 import com.itechart.project.repository.impl.meta.MetaImplicits._
-import com.itechart.project.http.auth.users.UserWithPassword
 import com.itechart.project.repository.UserRepository
 import doobie.Transactor
 import doobie.implicits._
+import doobie.util.fragment.Fragment
 
 class DoobieUserRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transactor[F]) extends UserRepository[F] {
-  override def find(username: Username): F[Option[UserWithPassword]] = {
-    val fragment = fr"SELECT * FROM users WHERE username = $username"
-    fragment
+  private val selectUser: Fragment = fr"SELECT * FROM users"
+  private val insertUser: Fragment = fr"INSERT INTO users (username, password, email)"
+  private val setUser:    Fragment = fr"UPDATE users"
+  private val deleteUser: Fragment = fr"DELETE FROM users"
+
+  private val insertCategoryToUser   = fr"INSERT INTO users_subscriptions_on_categories (user_id, category_id)"
+  private val deleteCategoryFromUser = fr"DELETE FROM users_subscriptions_on_categories"
+
+  private val insertSupplierToUser   = fr"INSERT INTO users_subscriptions_on_suppliers (user_id, supplier_id)"
+  private val deleteSupplierFromUser = fr"DELETE FROM users_subscriptions_on_suppliers"
+
+  override def all: F[List[DatabaseUser]] = {
+    selectUser
+      .query[DatabaseUser]
+      .to[List]
+      .transact(transactor)
+  }
+
+  override def findById(id: UserId): F[Option[DatabaseUser]] = {
+    (selectUser ++ fr"WHERE id = $id")
       .query[DatabaseUser]
       .option
       .transact(transactor)
-      .map {
-        case Some(user) => Some(UserWithPassword(user.id, user.username, user.password))
-        case _          => None
-      }
-
   }
 
-  override def create(username: Username, password: EncryptedPassword, email: Email): F[UserId] = {
-    val fragment =
-      fr"INSERT INTO users (username, password, email) VALUES ($username, $password, $email)"
-    fragment.update.withUniqueGeneratedKeys[UserId]("id").transact(transactor)
+  override def findByUsername(username: Username): F[Option[DatabaseUser]] = {
+    (selectUser ++ fr"WHERE username = $username")
+      .query[DatabaseUser]
+      .option
+      .transact(transactor)
+  }
+
+  override def findByItem(item: DatabaseItem): F[List[DatabaseUser]] = {
+    (selectUser ++ fr"INNER JOIN items_to_single_user"
+      ++ fr"ON users.id = items_to_single_user.user_id"
+      ++ fr"WHERE items_to_single_user.item_id = ${item.id}")
+      .query[DatabaseUser]
+      .to[List]
+      .transact(transactor)
+  }
+
+  override def findByGroup(group: DatabaseGroup): F[List[DatabaseUser]] = {
+    (selectUser ++ fr"INNER JOIN users_to_groups"
+      ++ fr"ON users.id = users_to_groups.user_id"
+      ++ fr"WHERE users_to_groups.group_id = ${group.id}")
+      .query[DatabaseUser]
+      .to[List]
+      .transact(transactor)
+  }
+
+  override def create(user: DatabaseUser): F[UserId] = {
+    (insertUser ++ fr"VALUES (${user.username}, ${user.password}, ${user.email})").update
+      .withUniqueGeneratedKeys[UserId]()
+      .transact(transactor)
+  }
+
+  override def update(user: DatabaseUser): F[Int] = {
+    (setUser ++ fr"SET username = ${user.username}, password = ${user.password},"
+      ++ fr"email = ${user.email}, role = ${user.role} WHERE id = ${user.id}").update.run
+      .transact(transactor)
+  }
+
+  override def delete(id: UserId): F[Int] = {
+    (deleteUser ++ fr"WHERE id = $id").update.run.transact(transactor)
+  }
+
+  override def subscribeToCategory(user: DatabaseUser, category: DatabaseCategory): F[Int] = {
+    (insertCategoryToUser ++ fr"VALUES (${user.id}, ${category.id})").update.run
+      .transact(transactor)
+  }
+
+  override def unsubscribeFromCategory(user: DatabaseUser, category: DatabaseCategory): F[Int] = {
+    (deleteCategoryFromUser ++ fr"WHERE user_id = ${user.id} AND category_id = ${category.id}").update.run
+      .transact(transactor)
+  }
+
+  override def subscribeToSupplier(user: DatabaseUser, supplier: DatabaseSupplier): F[Int] = {
+    (insertSupplierToUser ++ fr"VALUES (${user.id}, ${supplier.id})").update.run
+      .transact(transactor)
+  }
+
+  override def unsubscribeFromSupplier(user: DatabaseUser, supplier: DatabaseSupplier): F[Int] = {
+    (deleteSupplierFromUser ++ fr"WHERE user_id = ${user.id} AND supplier_id = ${supplier.id}").update.run
+      .transact(transactor)
   }
 }

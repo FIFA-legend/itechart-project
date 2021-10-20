@@ -2,7 +2,7 @@ package com.itechart.project.repository.impl.meta
 
 import com.itechart.project.domain.cart.Quantity
 import com.itechart.project.domain.item.{Amount, AvailabilityStatus}
-import com.itechart.project.domain.order.DeliveryStatus
+import com.itechart.project.domain.order.{DeliveryStatus, OrderId}
 import com.itechart.project.domain.user.{Email, Role}
 import com.itechart.project.util.RefinedConversion.convertParameter
 import com.itechart.project.util.SnakeStyleConversion.{normalizedSnakeCase, snakeToCamel}

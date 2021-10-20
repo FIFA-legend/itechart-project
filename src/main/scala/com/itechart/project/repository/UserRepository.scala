@@ -1,14 +1,27 @@
 package com.itechart.project.repository
 
 import cats.effect.Sync
-import com.itechart.project.domain.user.{Email, EncryptedPassword, Role, UserId, Username}
-import com.itechart.project.http.auth.users.UserWithPassword
+import com.itechart.project.domain.category.DatabaseCategory
+import com.itechart.project.domain.group.DatabaseGroup
+import com.itechart.project.domain.item.DatabaseItem
+import com.itechart.project.domain.supplier.DatabaseSupplier
+import com.itechart.project.domain.user.{DatabaseUser, UserId, Username}
 import com.itechart.project.repository.impl.DoobieUserRepository
 import doobie.util.transactor.Transactor
 
 trait UserRepository[F[_]] {
-  def find(username:   Username): F[Option[UserWithPassword]]
-  def create(username: Username, password: EncryptedPassword, email: Email): F[UserId]
+  def all: F[List[DatabaseUser]]
+  def findById(id:                  UserId):                F[Option[DatabaseUser]]
+  def findByUsername(username:      Username):              F[Option[DatabaseUser]]
+  def findByItem(item:              DatabaseItem):          F[List[DatabaseUser]]
+  def findByGroup(group:            DatabaseGroup):         F[List[DatabaseUser]]
+  def create(user:                  DatabaseUser):          F[UserId]
+  def update(user:                  DatabaseUser):          F[Int]
+  def delete(id:                    UserId): F[Int]
+  def subscribeToCategory(user:     DatabaseUser, category: DatabaseCategory): F[Int]
+  def unsubscribeFromCategory(user: DatabaseUser, category: DatabaseCategory): F[Int]
+  def subscribeToSupplier(user:     DatabaseUser, supplier: DatabaseSupplier): F[Int]
+  def unsubscribeFromSupplier(user: DatabaseUser, supplier: DatabaseSupplier): F[Int]
 }
 
 object UserRepository {

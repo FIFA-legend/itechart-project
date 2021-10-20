@@ -16,6 +16,12 @@ class DoobieGroupRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transact
   private val setGroup:    Fragment = fr"UPDATE user_groups"
   private val deleteGroup: Fragment = fr"DELETE FROM user_groups"
 
+  private val insertUserToGroup:   Fragment = fr"INSERT INTO users_to_groups (user_id, group_id)"
+  private val deleteUserFromGroup: Fragment = fr"DELETE FROM users_to_groups"
+
+  private val insertItemToGroup:   Fragment = fr"INSERT INTO items_to_groups (item_id, group_id)"
+  private val deleteItemFromGroup: Fragment = fr"DELETE FROM items_to_groups"
+
   override def all: F[List[DatabaseGroup]] = {
     selectGroup
       .query[DatabaseGroup]
@@ -61,6 +67,26 @@ class DoobieGroupRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transact
 
   override def delete(id: GroupId): F[Int] = {
     (deleteGroup ++ fr"WHERE id = $id").update.run
+      .transact(transactor)
+  }
+
+  override def addUserToGroup(group: DatabaseGroup, user: DatabaseUser): F[Int] = {
+    (insertUserToGroup ++ fr"VALUES (${user.id}, ${group.id})").update.run
+      .transact(transactor)
+  }
+
+  override def removeUserFromGroup(group: DatabaseGroup, user: DatabaseUser): F[Int] = {
+    (deleteUserFromGroup ++ fr"WHERE user_id = ${user.id} AND group_id = ${group.id}").update.run
+      .transact(transactor)
+  }
+
+  override def addItemToGroup(group: DatabaseGroup, item: DatabaseItem): F[Int] = {
+    (insertItemToGroup ++ fr"VALUES (${item.id}, ${group.id})").update.run
+      .transact(transactor)
+  }
+
+  override def removeItemFromGroup(group: DatabaseGroup, item: DatabaseItem): F[Int] = {
+    (deleteItemFromGroup ++ fr"WHERE user_id = ${item.id} AND group_id = ${group.id}").update.run
       .transact(transactor)
   }
 }

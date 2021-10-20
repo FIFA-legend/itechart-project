@@ -18,7 +18,7 @@ object cart {
     quantity: Quantity,
     itemId:   ItemId,
     userId:   UserId,
-    orderId:  OrderId
+    orderId:  Option[OrderId]
   )
 
   final case class Cart(items: Map[Long, Quantity])

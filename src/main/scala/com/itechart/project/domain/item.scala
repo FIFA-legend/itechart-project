@@ -1,5 +1,6 @@
 package com.itechart.project.domain
 
+import com.itechart.project.domain.category.CategoryId
 import com.itechart.project.domain.supplier.SupplierId
 import enumeratum.{CirceEnum, Enum, EnumEntry}
 import eu.timepit.refined.api.Refined
@@ -31,7 +32,7 @@ object item {
     final case object NotAvailable extends AvailabilityStatus
   }
 
-  case class DatabaseItem(
+  final case class DatabaseItem(
     id:          ItemId,
     name:        ItemName,
     description: ItemDescription,
@@ -39,6 +40,15 @@ object item {
     price:       Money,
     status:      AvailabilityStatus,
     supplier:    SupplierId,
+  )
+
+  final case class DatabaseItemFilter(
+    name:        Option[String],
+    description: Option[String],
+    minPrice:    Option[Double],
+    maxPrice:    Option[Double],
+    suppliers:   List[SupplierId],
+    categories:  List[CategoryId]
   )
 
   implicit val moneyEncoder: Encoder[Money] =
