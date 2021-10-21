@@ -85,7 +85,8 @@ libraryDependencies ++= Seq(
   "is.cir"                   %% "ciris"                         % cirisVersion,
   "is.cir"                   %% "ciris-enumeratum"              % cirisVersion,
   "is.cir"                   %% "ciris-refined"                 % cirisVersion,
-  "dev.profunktor"           %% "redis4cats-effects"            % "1.0.0"
+  "dev.profunktor"           %% "redis4cats-effects"            % "1.0.0",
+  "io.scalaland"             %% "chimney"                       % "0.6.1"
 )
 
 addCompilerPlugin(

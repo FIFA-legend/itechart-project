@@ -1,7 +1,7 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
-import com.itechart.project.domain.category.{CategoryId, DatabaseCategory}
+import com.itechart.project.domain.category.{CategoryId, CategoryName, DatabaseCategory}
 import com.itechart.project.domain.item.DatabaseItem
 import com.itechart.project.domain.user.DatabaseUser
 import com.itechart.project.repository.CategoryRepository
@@ -31,6 +31,13 @@ class DoobieCategoryRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
       .transact(transactor)
   }
 
+  def findByName(name: CategoryName): F[Option[DatabaseCategory]] = {
+    (selectCategory ++ fr"WHERE name = $name")
+      .query[DatabaseCategory]
+      .option
+      .transact(transactor)
+  }
+
   override def findByUser(user: DatabaseUser): F[List[DatabaseCategory]] = {
     (selectCategory ++ fr"INNER JOIN users_subscriptions_on_categories"
       ++ fr"ON categories.id = users_subscriptions_on_categories.category_id"
@@ -51,7 +58,7 @@ class DoobieCategoryRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
 
   override def create(category: DatabaseCategory): F[CategoryId] = {
     (insertCategory ++ fr"VALUES (${category.name})").update
-      .withUniqueGeneratedKeys[CategoryId]()
+      .withUniqueGeneratedKeys[CategoryId]("id")
       .transact(transactor)
   }
 

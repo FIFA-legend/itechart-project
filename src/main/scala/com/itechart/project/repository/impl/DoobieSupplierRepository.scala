@@ -1,7 +1,7 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
-import com.itechart.project.domain.supplier.{DatabaseSupplier, SupplierId}
+import com.itechart.project.domain.supplier.{DatabaseSupplier, SupplierId, SupplierName}
 import com.itechart.project.domain.user.DatabaseUser
 import com.itechart.project.repository.SupplierRepository
 import com.itechart.project.repository.impl.meta.MetaImplicits._
@@ -30,6 +30,13 @@ class DoobieSupplierRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
       .transact(transactor)
   }
 
+  def findByName(name: SupplierName): F[Option[DatabaseSupplier]] = {
+    (selectSupplier ++ fr"WHERE name = $name")
+      .query[DatabaseSupplier]
+      .option
+      .transact(transactor)
+  }
+
   override def findByUser(user: DatabaseUser): F[List[DatabaseSupplier]] = {
     (selectSupplier ++ fr"INNER JOIN users_subscriptions_on_suppliers"
       ++ fr"ON suppliers.id = users_subscriptions_on_suppliers.supplier_id"
@@ -41,7 +48,7 @@ class DoobieSupplierRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
 
   override def create(supplier: DatabaseSupplier): F[SupplierId] = {
     (insertSupplier ++ fr"VALUES (${supplier.name})").update
-      .withUniqueGeneratedKeys[SupplierId]()
+      .withUniqueGeneratedKeys[SupplierId]("id")
       .transact(transactor)
   }
 

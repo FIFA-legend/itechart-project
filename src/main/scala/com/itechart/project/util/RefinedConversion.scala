@@ -14,4 +14,14 @@ object RefinedConversion {
     refineV(parameter).getOrElse(default)
   }
 
+  def validateParameter[E, T, P](
+    parameter: T,
+    error:     E
+  )(
+    implicit v: Validate[T, P]
+  ): Either[E, Refined[T, P]] = {
+    refineV(parameter).left
+      .map(_ => error)
+  }
+
 }

@@ -39,7 +39,7 @@ object item {
     amount:      Amount,
     price:       Money,
     status:      AvailabilityStatus,
-    supplier:    SupplierId,
+    supplier:    SupplierId
   )
 
   final case class DatabaseItemFilter(
