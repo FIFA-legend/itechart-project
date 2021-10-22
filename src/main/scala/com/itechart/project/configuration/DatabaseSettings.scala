@@ -8,6 +8,8 @@ import doobie.hikari.HikariTransactor
 import doobie.util.ExecutionContexts
 import org.flywaydb.core.Flyway
 
+import java.io.File
+
 object DatabaseSettings {
 
   def transactor[F[_]: ContextShift: Async](
@@ -28,8 +30,8 @@ object DatabaseSettings {
   class FlywayMigrator[F[_]: Sync](configuration: DatabaseConfiguration) {
     def migrate(): F[Int] =
       for {
-        conf <- migrationConfiguration(configuration)
-        res  <- Sync[F].delay(conf.migrate())
+        config <- migrationConfiguration(configuration)
+        res    <- Sync[F].delay(config.migrate())
       } yield res
 
     private def migrationConfiguration(configuration: DatabaseConfiguration): F[Flyway] = {
@@ -37,7 +39,7 @@ object DatabaseSettings {
         Flyway
           .configure()
           .dataSource(configuration.url, configuration.user, configuration.password)
-          .locations(s"${configuration.migrationLocation}/${configuration.provider}")
+          .locations(s"${configuration.migrationLocation}" + File.separator + s"${configuration.provider}")
           .load()
       )
     }
