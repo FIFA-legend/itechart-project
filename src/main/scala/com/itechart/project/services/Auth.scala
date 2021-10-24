@@ -2,14 +2,14 @@ package com.itechart.project.services
 
 import cats.effect.MonadThrow
 import cats._
-import cats.implicits._
 import cats.syntax.all._
 import com.itechart.project.authentication.{Crypto, Token}
 import com.itechart.project.configuration.ConfigurationTypes.TokenExpiration
-import com.itechart.project.domain.user.UserAuthenticationError.{InvalidPassword, UserNotFound, UsernameInUse}
-import com.itechart.project.domain.user.{Email, Password, Username}
-import com.itechart.project.http.auth.users._
+import com.itechart.project.domain.user.{Password, Username}
+import com.itechart.project.dto.auth.{AuthClientUser, AuthCourierUser, AuthManagerUser, AuthUser}
 import com.itechart.project.repository.UserRepository
+import com.itechart.project.services.error.AuthErrors.UserAuthenticationError.{InvalidPassword, UserNotFound}
+import com.itechart.project.util.ModelMapper.userDomainToDto
 import dev.profunktor.auth.jwt.JwtToken
 import dev.profunktor.redis4cats.RedisCommands
 import pdi.jwt.JwtClaim
@@ -18,7 +18,6 @@ import io.circe.syntax._
 
 import scala.tools.nsc.tasty.SafeEq
 
-/*
 trait UsersAuth[F[_], A] {
   def findUser(token: JwtToken)(claim: JwtClaim): F[Option[A]]
 }
@@ -26,9 +25,9 @@ trait UsersAuth[F[_], A] {
 object UsersAuth {
   def manager[F[_]: Applicative](
     managerToken: JwtToken,
-    managerUser:  ManagerUser
-  ): UsersAuth[F, ManagerUser] = new UsersAuth[F, ManagerUser] {
-    override def findUser(token: JwtToken)(claim: JwtClaim): F[Option[ManagerUser]] = {
+    managerUser:  AuthManagerUser
+  ): UsersAuth[F, AuthManagerUser] = new UsersAuth[F, AuthManagerUser] {
+    override def findUser(token: JwtToken)(claim: JwtClaim): F[Option[AuthManagerUser]] = {
       (token === managerToken)
         .guard[Option]
         .as(managerUser)
@@ -38,9 +37,9 @@ object UsersAuth {
 
   def courier[F[_]: Applicative](
     courierToken: JwtToken,
-    courierUser:  CourierUser
-  ): UsersAuth[F, CourierUser] = new UsersAuth[F, CourierUser] {
-    override def findUser(token: JwtToken)(claim: JwtClaim): F[Option[CourierUser]] = {
+    courierUser:  AuthCourierUser
+  ): UsersAuth[F, AuthCourierUser] = new UsersAuth[F, AuthCourierUser] {
+    override def findUser(token: JwtToken)(claim: JwtClaim): F[Option[AuthCourierUser]] = {
       (token === courierToken)
         .guard[Option]
         .as(courierUser)
@@ -50,13 +49,13 @@ object UsersAuth {
 
   def client[F[_]: Functor](
     redis: RedisCommands[F, String, String]
-  ): UsersAuth[F, ClientUser] = new UsersAuth[F, ClientUser] {
-    override def findUser(token: JwtToken)(claim: JwtClaim): F[Option[ClientUser]] = {
+  ): UsersAuth[F, AuthClientUser] = new UsersAuth[F, AuthClientUser] {
+    override def findUser(token: JwtToken)(claim: JwtClaim): F[Option[AuthClientUser]] = {
       redis
         .get(token.value)
         .map {
           _.flatMap { user =>
-            decode[User](user).toOption.map(ClientUser.apply)
+            decode[AuthUser](user).toOption.map(AuthClientUser.apply)
           }
         }
     }
@@ -64,9 +63,9 @@ object UsersAuth {
 }
 
 trait Auth[F[_]] {
-  def register(username: Username, password: Password, email: Email): F[JwtToken]
-  def login(username:    Username, password: Password): F[JwtToken]
-  def logout(userToken:  JwtToken, username: Username): F[Unit]
+  //def register(username: Username, password: Password, email: Email): F[JwtToken]
+  def login(username:   Username, password: Password): F[JwtToken]
+  def logout(userToken: JwtToken, username: Username): F[Unit]
 }
 
 object Auth {
@@ -79,22 +78,22 @@ object Auth {
   ): Auth[F] = new Auth[F] {
     private val expiration = tokenExpiration.value
 
-    override def register(username: Username, password: Password, email: Email): F[JwtToken] = {
-      users.find(username).flatMap {
+    /*override def register(username: Username, password: Password, email: Email): F[JwtToken] = {
+      users.findByUsername(username).flatMap {
         case Some(_) => UsernameInUse(username).raiseError[F, JwtToken]
         case None =>
           for {
-            id  <- users.create(username, crypto.encrypt(password), email)
+            id  <- users.create(authUserDtoToDomain())
             t   <- token.create
-            user = User(id, username).asJson.noSpaces
+            user = AuthUser(id, username).asJson.noSpaces
             _   <- redis.setEx(t.value, user, expiration)
             _   <- redis.setEx(username.value.show, t.value, expiration)
           } yield t
       }
-    }
+    }*/
 
     override def login(username: Username, password: Password): F[JwtToken] = {
-      users.find(username).flatMap {
+      users.findByUsername(username).flatMap {
         case None => UserNotFound(username).raiseError[F, JwtToken]
         case Some(user) if user.password.value != crypto.encrypt(password).value =>
           InvalidPassword(username).raiseError[F, JwtToken]
@@ -103,7 +102,7 @@ object Auth {
             case Some(t) => JwtToken(t).pure[F]
             case None =>
               token.create.flatTap { t =>
-                redis.setEx(t.value, user.asJson.noSpaces, expiration) *>
+                redis.setEx(t.value, userDomainToDto(user).asJson.noSpaces, expiration) *>
                   redis.setEx(username.value.show, t.value, expiration)
               }
           }
@@ -115,4 +114,3 @@ object Auth {
     }
   }
 }
- */

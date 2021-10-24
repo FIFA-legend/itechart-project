@@ -31,7 +31,7 @@ object MetaImplicits {
     Meta[String].timap(str => convertParameter[Int, GreaterEqual[1]](str.toInt, Int.MaxValue))(_.toString())
 
   implicit val priceMeta: Meta[Money] =
-    Meta[String].timap(str => Money.apply(BigDecimal(str), USD))(_.toString())
+    Meta[String].timap(str => Money.apply(BigDecimal(str), USD))(_.amount.toString())
 
   implicit val roleMeta: Meta[Role] =
     Meta[String].timap(str => Role.withNameInsensitive(snakeToCamel(str.toLowerCase)))(status =>

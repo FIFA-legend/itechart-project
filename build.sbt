@@ -86,7 +86,8 @@ libraryDependencies ++= Seq(
   "is.cir"                   %% "ciris-enumeratum"              % cirisVersion,
   "is.cir"                   %% "ciris-refined"                 % cirisVersion,
   "dev.profunktor"           %% "redis4cats-effects"            % "1.0.0",
-  "io.scalaland"             %% "chimney"                       % "0.6.1"
+  "io.scalaland"             %% "chimney"                       % "0.6.1",
+  "tf.tofu"                  %% s"derevo-core"                  % "0.12.6"
 )
 
 addCompilerPlugin(

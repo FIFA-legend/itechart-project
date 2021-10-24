@@ -17,7 +17,6 @@ object user {
   @JsonCodec final case class FullUserDto(
     id:                   Long,
     username:             String,
-    password:             String,
     email:                String,
     role:                 Role,
     subscribedCategories: List[CategoryDto],
