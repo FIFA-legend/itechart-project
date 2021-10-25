@@ -1,20 +1,31 @@
 package com.itechart.project.services.impl
 
 import cats.data.EitherT
-import cats.effect.Sync
+import cats.effect.{Blocker, ContextShift, Sync}
 import cats.implicits._
 import com.itechart.project.domain.attachment.{AttachmentId, DatabaseAttachment}
-import com.itechart.project.repository.AttachmentRepository
+import com.itechart.project.domain.item.ItemId
+import com.itechart.project.repository.{AttachmentRepository, ItemRepository}
 import com.itechart.project.services.AttachmentService
 import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError
-import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError.AttachmentNotFound
+import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError.{
+  AttachmentNotFound,
+  InvalidItemAttachment
+}
+import com.itechart.project.util.RefinedConversion.convertParameter
 import io.chrisdavenport.log4cats.Logger
-import org.http4s.multipart.Multipart
+import eu.timepit.refined.auto._
+import eu.timepit.refined.collection.NonEmpty
+import fs2.Stream
+import org.http4s.multipart.{Multipart, Part}
 
-import java.io.File
+import java.io.{BufferedOutputStream, File, FileOutputStream}
+import java.nio.file.{Files, Paths}
 
-class AttachmentServiceImpl[F[_]: Sync: Logger](attachmentRepository: AttachmentRepository[F])
-  extends AttachmentService[F] {
+class AttachmentServiceImpl[F[_]: Sync: Logger: ContextShift](
+  attachmentRepository: AttachmentRepository[F],
+  itemRepository:       ItemRepository[F]
+) extends AttachmentService[F] {
   private val path = "src/main/resources/attachments"
 
   override def findFileById(id: Long): F[Either[AttachmentFileError, File]] = {
@@ -29,7 +40,15 @@ class AttachmentServiceImpl[F[_]: Sync: Logger](attachmentRepository: Attachment
     result.value
   }
 
-  override def createFile(multipart: Multipart[F]): F[Either[AttachmentFileError, AttachmentId]] = ???
+  override def deleteFile(id: Long): F[Either[AttachmentFileError, Boolean]] = {
+    val result: EitherT[F, AttachmentFileError, Boolean] = for {
+      attachment    <- EitherT.fromOptionF(attachmentRepository.findById(AttachmentId(id)), AttachmentNotFound(id))
+      isFileDeleted <- EitherT.liftF(Files.deleteIfExists(Paths.get(path + File.separator + attachment.link)).pure[F])
+      attachmentDeleted <-
+        if (!isFileDeleted) EitherT.liftF[F, AttachmentFileError, Int](0.pure[F])
+        else EitherT.liftF[F, AttachmentFileError, Int](attachmentRepository.delete(attachment.id))
+    } yield attachmentDeleted != 0
 
-  override def deleteFile(id: Long): F[Either[AttachmentFileError, Boolean]] = ???
+    result.value
+  }
 }

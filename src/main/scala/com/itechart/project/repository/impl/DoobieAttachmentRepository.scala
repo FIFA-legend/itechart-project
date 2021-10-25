@@ -31,7 +31,7 @@ class DoobieAttachmentRepository[F[_]: Bracket[*[_], Throwable]](transactor: Tra
 
   override def create(attachment: DatabaseAttachment): F[AttachmentId] = {
     (insertAttachment ++ fr"VALUES (${attachment.link}, ${attachment.itemId})").update
-      .withUniqueGeneratedKeys[AttachmentId]()
+      .withUniqueGeneratedKeys[AttachmentId]("id")
       .transact(transactor)
   }
 

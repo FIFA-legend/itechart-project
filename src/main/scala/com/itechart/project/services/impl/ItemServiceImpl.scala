@@ -86,7 +86,7 @@ class ItemServiceImpl[F[_]: Sync: Logger](
     for {
       filteredItems <- findAllByFilter(filter)
       userItems     <- findAllByUser(user)
-      result         = filteredItems.toSet ++ userItems.toSet
+      result         = filteredItems.toSet.intersect(userItems.toSet)
     } yield result.toList
   }
 
