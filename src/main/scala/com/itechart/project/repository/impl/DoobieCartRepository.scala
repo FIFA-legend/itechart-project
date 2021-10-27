@@ -39,13 +39,13 @@ class DoobieCartRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
 
   override def create(cart: DatabaseCart): F[CartId] = {
     (insertCart ++ fr"VALUES (${cart.quantity}, ${cart.itemId}, ${cart.userId})").update
-      .withUniqueGeneratedKeys[CartId]()
+      .withUniqueGeneratedKeys[CartId]("id")
       .transact(transactor)
   }
 
   override def update(cart: DatabaseCart): F[Int] = {
     (setCart ++ fr"SET quantity = ${cart.quantity}, item_id = ${cart.itemId},"
-      ++ fr"user_id = ${cart.userId}, order_id = ${cart.orderId}").update.run.transact(transactor)
+      ++ fr"user_id = ${cart.userId}, order_id = ${cart.orderId} WHERE id = ${cart.id}").update.run.transact(transactor)
   }
 
   override def delete(id: CartId): F[Int] = {

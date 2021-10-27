@@ -8,13 +8,15 @@ import com.itechart.project.configuration.DatabaseSettings.{migrator, transactor
 import com.itechart.project.modules.Security
 import com.itechart.project.repository.{
   AttachmentRepository,
+  CartRepository,
   CategoryRepository,
   GroupRepository,
   ItemRepository,
-  SupplierRepository
+  SupplierRepository,
+  UserRepository
 }
-import com.itechart.project.routes.{AttachmentRoutes, CategoryRoutes, ItemRoutes, SupplierRoutes}
-import com.itechart.project.services.{AttachmentService, CategoryService, ItemService, SupplierService}
+import com.itechart.project.routes.{AttachmentRoutes, CartRoutes, CategoryRoutes, ItemRoutes, SupplierRoutes}
+import com.itechart.project.services.{AttachmentService, CartService, CategoryService, ItemService, SupplierService}
 import dev.profunktor.redis4cats.effect.MkRedis
 import dev.profunktor.redis4cats.{Redis, RedisCommands}
 import io.chrisdavenport.log4cats.Logger
@@ -37,18 +39,22 @@ object AppContext {
       itemRepository       = ItemRepository.of[F](tx)
       groupRepository      = GroupRepository.of[F](tx)
       attachmentRepository = AttachmentRepository.of[F](tx)
+      cartRepository       = CartRepository.of[F](tx)
+      userRepository       = UserRepository.of[F](tx)
 
       categoryService = CategoryService.of[F](categoryRepository)
       supplierService = SupplierService.of[F](supplierRepository)
       itemService = ItemService
         .of[F](itemRepository, categoryRepository, supplierRepository, attachmentRepository, groupRepository)
-      attachmentService = AttachmentService.of(attachmentRepository, itemRepository)
+      attachmentService = AttachmentService.of(attachmentRepository)
+      cartService       = CartService.of[F](cartRepository, itemRepository, userRepository, groupRepository)
 
       categoryRoutes   = CategoryRoutes.routes[F](categoryService)
       supplierRoutes   = SupplierRoutes.routes[F](supplierService)
       itemRoutes       = ItemRoutes.routes[F](itemService)
       attachmentRoutes = AttachmentRoutes.routes[F](attachmentService, blocker)
-    } yield (categoryRoutes <+> supplierRoutes <+> itemRoutes <+> attachmentRoutes).orNotFound
+      cartRoutes       = CartRoutes.routes[F](cartService)
+    } yield (categoryRoutes <+> supplierRoutes <+> itemRoutes <+> attachmentRoutes <+> cartRoutes).orNotFound
   }
 
 }

@@ -3,7 +3,7 @@ package com.itechart.project.services.impl
 import cats.data.EitherT
 import cats.effect.Sync
 import cats.implicits._
-import com.itechart.project.domain.category.{CategoryId, DatabaseCategory}
+import com.itechart.project.domain.category.CategoryId
 import com.itechart.project.domain.item.{Amount, AvailabilityStatus, DatabaseItem, ItemDescription, ItemId, ItemName}
 import com.itechart.project.domain.supplier.{DatabaseSupplier, SupplierId}
 import com.itechart.project.dto.category.CategoryDto

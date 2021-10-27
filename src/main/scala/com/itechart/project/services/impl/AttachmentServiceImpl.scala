@@ -1,30 +1,20 @@
 package com.itechart.project.services.impl
 
 import cats.data.EitherT
-import cats.effect.{Blocker, ContextShift, Sync}
+import cats.effect.{ContextShift, Sync}
 import cats.implicits._
 import com.itechart.project.domain.attachment.{AttachmentId, DatabaseAttachment}
-import com.itechart.project.domain.item.ItemId
-import com.itechart.project.repository.{AttachmentRepository, ItemRepository}
+import com.itechart.project.repository.AttachmentRepository
 import com.itechart.project.services.AttachmentService
 import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError
-import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError.{
-  AttachmentNotFound,
-  InvalidItemAttachment
-}
-import com.itechart.project.util.RefinedConversion.convertParameter
+import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError.AttachmentNotFound
 import io.chrisdavenport.log4cats.Logger
-import eu.timepit.refined.auto._
-import eu.timepit.refined.collection.NonEmpty
-import fs2.Stream
-import org.http4s.multipart.{Multipart, Part}
 
-import java.io.{BufferedOutputStream, File, FileOutputStream}
+import java.io.File
 import java.nio.file.{Files, Paths}
 
 class AttachmentServiceImpl[F[_]: Sync: Logger: ContextShift](
-  attachmentRepository: AttachmentRepository[F],
-  itemRepository:       ItemRepository[F]
+  attachmentRepository: AttachmentRepository[F]
 ) extends AttachmentService[F] {
   private val path = "src/main/resources/attachments"
 

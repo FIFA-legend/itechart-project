@@ -15,8 +15,7 @@ trait AttachmentService[F[_]] {
 
 object AttachmentService {
   def of[F[_]: Sync: Logger: ContextShift](
-    attachmentRepository: AttachmentRepository[F],
-    itemRepository:       ItemRepository[F]
+    attachmentRepository: AttachmentRepository[F]
   ): AttachmentService[F] =
-    new AttachmentServiceImpl[F](attachmentRepository, itemRepository)
+    new AttachmentServiceImpl[F](attachmentRepository)
 }

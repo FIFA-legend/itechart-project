@@ -1,10 +1,13 @@
 package com.itechart.project.util
 
+import com.itechart.project.domain.cart.{CartId, DatabaseCart}
 import com.itechart.project.domain.category.{CategoryId, DatabaseCategory}
 import com.itechart.project.domain.item.{DatabaseItem, DatabaseItemFilter, ItemId}
+import com.itechart.project.domain.order.OrderId
 import com.itechart.project.domain.supplier.{DatabaseSupplier, SupplierId}
 import com.itechart.project.domain.user.{DatabaseUser, EncryptedPassword, Role, UserId, Username}
 import com.itechart.project.dto.auth.{AuthUser, AuthUserWithPassword}
+import com.itechart.project.dto.cart.{CartDto, CartItemDto, SingleCartDto}
 import com.itechart.project.dto.category.CategoryDto
 import com.itechart.project.dto.item.{AttachmentIdDto, FilterItemDto, ItemDto}
 import com.itechart.project.dto.supplier.SupplierDto
@@ -127,6 +130,44 @@ object ModelMapper {
           "some@email.com"
         )
       )
+      .transform
+  }
+
+  def singleCartDtoToDomain(cartItem: SingleCartDto, user: FullUserDto): DatabaseCart = {
+    cartItem
+      .into[DatabaseCart]
+      .withFieldConst(_.id, CartId(cartItem.id))
+      .withFieldConst(_.quantity, RefinedConversion.convertParameter[Int, GreaterEqual[1]](cartItem.quantity, 1))
+      .withFieldConst(_.orderId, cartItem.orderId.map(OrderId))
+      .withFieldConst(_.itemId, ItemId(cartItem.item.id))
+      .withFieldConst(_.userId, UserId(user.id))
+      .transform
+  }
+
+  def cartDomainToDto(cart: DatabaseCart, itemDto: CartItemDto): SingleCartDto = {
+    cart
+      .into[SingleCartDto]
+      .withFieldComputed(_.id, _.id.id)
+      .withFieldComputed(_.quantity, _.quantity.value)
+      .withFieldComputed(_.orderId, _.orderId.map(_.value))
+      .withFieldConst(_.item, itemDto)
+      .transform
+  }
+
+  def cartsDomainToCartDto(list: List[(DatabaseCart, CartItemDto)]): CartDto = {
+    val convertedList = list.map { case (cart, item) =>
+      cartDomainToDto(cart, item)
+    }
+    CartDto(convertedList)
+  }
+
+  def itemDomainToCartItemDto(item: DatabaseItem): CartItemDto = {
+    item
+      .into[CartItemDto]
+      .withFieldComputed(_.id, _.id.value)
+      .withFieldComputed(_.price, _.price.amount.doubleValue)
+      .withFieldComputed(_.name, _.name.value)
+      .withFieldComputed(_.description, _.description.value)
       .transform
   }
 

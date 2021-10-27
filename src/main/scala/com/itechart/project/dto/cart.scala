@@ -1,10 +1,13 @@
 package com.itechart.project.dto
 
-import com.itechart.project.dto.item.ItemDto
 import io.circe.generic.JsonCodec
 
 object cart {
 
-  @JsonCodec case class CartDto(list: List[(ItemDto, Int)])
+  @JsonCodec final case class CartDto(items: List[SingleCartDto])
+
+  @JsonCodec final case class SingleCartDto(id: Long, quantity: Int, item: CartItemDto, orderId: Option[Long])
+
+  @JsonCodec final case class CartItemDto(id: Long, name: String, description: String, price: Double)
 
 }
