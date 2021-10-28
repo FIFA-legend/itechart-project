@@ -4,7 +4,8 @@ import cats.effect.Bracket
 import cats.implicits._
 import com.itechart.project.domain.cart.DatabaseCart
 import com.itechart.project.domain.category.DatabaseCategory
-import com.itechart.project.domain.item.{DatabaseItem, DatabaseItemFilter, ItemId}
+import com.itechart.project.domain.group.DatabaseGroup
+import com.itechart.project.domain.item.{AvailabilityStatus, DatabaseItem, DatabaseItemFilter, ItemId}
 import com.itechart.project.domain.supplier.DatabaseSupplier
 import com.itechart.project.domain.user.DatabaseUser
 import com.itechart.project.repository.ItemRepository
@@ -38,6 +39,13 @@ class DoobieItemRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
       .transact(transactor)
   }
 
+  def findByStatus(status: AvailabilityStatus): F[List[DatabaseItem]] = {
+    (selectItem ++ fr"WHERE status = $status")
+      .query[DatabaseItem]
+      .to[List]
+      .transact(transactor)
+  }
+
   override def findByCategory(category: DatabaseCategory): F[List[DatabaseItem]] = {
     (selectItem ++ fr"INNER JOIN items_categories"
       ++ fr"ON items.id = items_categories.item_id"
@@ -63,6 +71,15 @@ class DoobieItemRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
       .transact(transactor)
   }
 
+  def findByGroup(group: DatabaseGroup): F[List[DatabaseItem]] = {
+    (selectItem ++ fr"INNER JOIN items_to_groups"
+      ++ fr"ON items.id = items_to_groups.item_id"
+      ++ fr"WHERE items_to_groups.group_id = ${group.id}")
+      .query[DatabaseItem]
+      .to[List]
+      .transact(transactor)
+  }
+
   override def findByCart(cart: DatabaseCart): F[Option[DatabaseItem]] = {
     (selectItem ++ fr"WHERE id = ${cart.itemId}")
       .query[DatabaseItem]
@@ -74,7 +91,7 @@ class DoobieItemRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
     (insertItem ++
       fr"VALUES (${item.name}, ${item.description}, ${item.amount}, " ++
       fr"${item.price}, ${item.status}, ${item.supplier})").update
-      .withUniqueGeneratedKeys[ItemId]()
+      .withUniqueGeneratedKeys[ItemId]("id")
       .transact(transactor)
   }
 
@@ -82,7 +99,7 @@ class DoobieItemRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
     (setItem ++
       fr"SET name = ${item.name}, description = ${item.description}, " ++
       fr"amount = ${item.amount}, price = ${item.price}, " ++
-      fr"status = ${item.status}, supplier_id = ${item.supplier}").update.run
+      fr"status = ${item.status}, supplier_id = ${item.supplier} WHERE id = ${item.id}").update.run
       .transact(transactor)
   }
 

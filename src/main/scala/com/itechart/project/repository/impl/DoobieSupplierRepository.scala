@@ -1,6 +1,7 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
+import com.itechart.project.domain.item.DatabaseItem
 import com.itechart.project.domain.supplier.{DatabaseSupplier, SupplierId, SupplierName}
 import com.itechart.project.domain.user.DatabaseUser
 import com.itechart.project.repository.SupplierRepository
@@ -43,6 +44,13 @@ class DoobieSupplierRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
       ++ fr"WHERE users_subscriptions_on_suppliers.user_id = ${user.id}")
       .query[DatabaseSupplier]
       .to[List]
+      .transact(transactor)
+  }
+
+  def findByItem(item: DatabaseItem): F[DatabaseSupplier] = {
+    (selectSupplier ++ fr"WHERE id = ${item.supplier}")
+      .query[DatabaseSupplier]
+      .unique
       .transact(transactor)
   }
 

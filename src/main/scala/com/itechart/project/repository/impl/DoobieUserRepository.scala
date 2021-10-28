@@ -65,7 +65,7 @@ class DoobieUserRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
 
   override def create(user: DatabaseUser): F[UserId] = {
     (insertUser ++ fr"VALUES (${user.username}, ${user.password}, ${user.email})").update
-      .withUniqueGeneratedKeys[UserId]()
+      .withUniqueGeneratedKeys[UserId]("id")
       .transact(transactor)
   }
 

@@ -1,7 +1,5 @@
 package com.itechart.project.services.error
 
-import com.itechart.project.dto.category.CategoryDto
-
 import scala.util.control.NoStackTrace
 
 object CategoryErrors {

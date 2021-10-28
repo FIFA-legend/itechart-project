@@ -9,13 +9,16 @@ import doobie.util.transactor.Transactor
 
 trait CategoryRepository[F[_]] {
   def all: F[List[DatabaseCategory]]
-  def findById(id:     CategoryId):       F[Option[DatabaseCategory]]
-  def findByName(name: CategoryName):     F[Option[DatabaseCategory]]
-  def findByUser(user: DatabaseUser):     F[List[DatabaseCategory]]
-  def findByItem(item: DatabaseItem):     F[List[DatabaseCategory]]
-  def create(category: DatabaseCategory): F[CategoryId]
-  def update(category: DatabaseCategory): F[Int]
-  def delete(id:       CategoryId):       F[Int]
+  def findById(id:            CategoryId):       F[Option[DatabaseCategory]]
+  def findByName(name:        CategoryName):     F[Option[DatabaseCategory]]
+  def findByUser(user:        DatabaseUser):     F[List[DatabaseCategory]]
+  def findByItem(item:        DatabaseItem):     F[List[DatabaseCategory]]
+  def create(category:        DatabaseCategory): F[CategoryId]
+  def update(category:        DatabaseCategory): F[Int]
+  def delete(id:              CategoryId): F[Int]
+  def createLinksToItem(item: DatabaseItem, categories: List[DatabaseCategory]): F[Int]
+  def updateLinksToItem(item: DatabaseItem, categories: List[DatabaseCategory]): F[Int]
+  def deleteLinksToItem(item: DatabaseItem): F[Int]
 }
 
 object CategoryRepository {

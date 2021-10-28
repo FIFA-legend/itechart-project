@@ -1,6 +1,7 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
+import cats.implicits._
 import com.itechart.project.domain.category.{CategoryId, CategoryName, DatabaseCategory}
 import com.itechart.project.domain.item.DatabaseItem
 import com.itechart.project.domain.user.DatabaseUser
@@ -70,5 +71,26 @@ class DoobieCategoryRepository[F[_]: Bracket[*[_], Throwable]](transactor: Trans
   override def delete(id: CategoryId): F[Int] = {
     (deleteCategory ++ fr"WHERE id = $id").update.run
       .transact(transactor)
+  }
+
+  override def createLinksToItem(item: DatabaseItem, categories: List[DatabaseCategory]): F[Int] = {
+    val fragment = fr"INSERT INTO items_categories (item_id, category_id)"
+    val queries  = categories.map(category => fragment ++ fr"VALUES (${item.id}, ${category.id})")
+    for {
+      list <- queries.map(_.update.run.transact(transactor)).sequence
+      sum   = list.sum
+    } yield sum
+  }
+
+  override def updateLinksToItem(item: DatabaseItem, categories: List[DatabaseCategory]): F[Int] = {
+    for {
+      _      <- deleteLinksToItem(item)
+      result <- createLinksToItem(item, categories)
+    } yield result
+  }
+
+  override def deleteLinksToItem(item: DatabaseItem): F[Int] = {
+    val fragment = fr"DELETE FROM items_categories WHERE item_id = ${item.id}"
+    fragment.update.run.transact(transactor)
   }
 }

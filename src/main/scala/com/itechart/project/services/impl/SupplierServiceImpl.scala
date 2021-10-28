@@ -21,8 +21,10 @@ import io.chrisdavenport.log4cats.Logger
 class SupplierServiceImpl[F[_]: Sync: Logger](supplierRepository: SupplierRepository[F]) extends SupplierService[F] {
   override def findAllSuppliers: F[List[SupplierDto]] = {
     for {
-      suppliers <- supplierRepository.all <* Logger[F].info(s"Selecting all suppliers from database")
+      _         <- Logger[F].info(s"Selecting all suppliers from database")
+      suppliers <- supplierRepository.all
       supplier  <- suppliers.traverse(c => supplierDomainToDto(c).pure[F])
+      _         <- Logger[F].info(s"Selected ${suppliers.size} suppliers from database")
     } yield supplier
   }
 
@@ -40,9 +42,8 @@ class SupplierServiceImpl[F[_]: Sync: Logger](supplierRepository: SupplierReposi
 
   override def createSupplier(supplier: SupplierDto): F[Either[SupplierValidationError, SupplierDto]] = {
     val result: EitherT[F, SupplierValidationError, SupplierDto] = for {
-      _ <- EitherT(validateSupplier(supplier).pure[F]) <* EitherT.liftF(
-        Logger[F].info(s"Creating new supplier in database")
-      )
+      _     <- EitherT.liftF(Logger[F].info(s"Creating new supplier in database"))
+      _     <- EitherT(validateSupplier(supplier).pure[F])
       domain = supplierDtoToDomain(supplier)
       _     <- EitherT(existsByName(domain))
 
