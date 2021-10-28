@@ -10,7 +10,7 @@ import doobie.implicits._
 import doobie.util.fragment.Fragment
 
 class DoobieOrderRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transactor[F]) extends OrderRepository[F] {
-  private val selectOrder: Fragment = fr"SELECT * FROM orders"
+  private val selectOrder: Fragment = fr"SELECT id, total, address, status, user_id FROM orders"
   private val insertOrder: Fragment = fr"INSERT INTO orders (total, address, user_id)"
   private val setOrder:    Fragment = fr"UPDATE orders"
 
@@ -37,7 +37,7 @@ class DoobieOrderRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transact
 
   override def create(order: DatabaseOrder): F[OrderId] = {
     (insertOrder ++ fr"VALUES (${order.total}, ${order.address}, ${order.userId})").update
-      .withUniqueGeneratedKeys[OrderId]()
+      .withUniqueGeneratedKeys[OrderId]("id")
       .transact(transactor)
   }
 

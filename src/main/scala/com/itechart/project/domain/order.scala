@@ -1,7 +1,5 @@
 package com.itechart.project.domain
 
-import com.itechart.project.domain.cart.Quantity
-import com.itechart.project.domain.item.ItemId
 import com.itechart.project.domain.user.UserId
 import enumeratum.{CirceEnum, Enum, EnumEntry}
 import eu.timepit.refined.types.string.NonEmptyString
@@ -29,13 +27,6 @@ object order {
     address: Address,
     status:  DeliveryStatus,
     userId:  UserId
-  )
-
-  final case class Order(
-    id:     OrderId,
-    total:  Money,
-    status: DeliveryStatus,
-    items:  Map[ItemId, Quantity]
   )
 
 }

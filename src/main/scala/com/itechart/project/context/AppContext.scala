@@ -12,11 +12,26 @@ import com.itechart.project.repository.{
   CategoryRepository,
   GroupRepository,
   ItemRepository,
+  OrderRepository,
   SupplierRepository,
   UserRepository
 }
-import com.itechart.project.routes.{AttachmentRoutes, CartRoutes, CategoryRoutes, ItemRoutes, SupplierRoutes}
-import com.itechart.project.services.{AttachmentService, CartService, CategoryService, ItemService, SupplierService}
+import com.itechart.project.routes.{
+  AttachmentRoutes,
+  CartRoutes,
+  CategoryRoutes,
+  ItemRoutes,
+  OrderRoutes,
+  SupplierRoutes
+}
+import com.itechart.project.services.{
+  AttachmentService,
+  CartService,
+  CategoryService,
+  ItemService,
+  OrderService,
+  SupplierService
+}
 import dev.profunktor.redis4cats.effect.MkRedis
 import dev.profunktor.redis4cats.{Redis, RedisCommands}
 import io.chrisdavenport.log4cats.Logger
@@ -41,6 +56,7 @@ object AppContext {
       attachmentRepository = AttachmentRepository.of[F](tx)
       cartRepository       = CartRepository.of[F](tx)
       userRepository       = UserRepository.of[F](tx)
+      orderRepository      = OrderRepository.of[F](tx)
 
       categoryService = CategoryService.of[F](categoryRepository)
       supplierService = SupplierService.of[F](supplierRepository)
@@ -48,13 +64,18 @@ object AppContext {
         .of[F](itemRepository, categoryRepository, supplierRepository, attachmentRepository, groupRepository)
       attachmentService = AttachmentService.of(attachmentRepository)
       cartService       = CartService.of[F](cartRepository, itemRepository, userRepository, groupRepository)
+      orderService      = OrderService.of[F](orderRepository, cartRepository, itemRepository, userRepository)
 
       categoryRoutes   = CategoryRoutes.routes[F](categoryService)
       supplierRoutes   = SupplierRoutes.routes[F](supplierService)
       itemRoutes       = ItemRoutes.routes[F](itemService)
       attachmentRoutes = AttachmentRoutes.routes[F](attachmentService, blocker)
       cartRoutes       = CartRoutes.routes[F](cartService)
-    } yield (categoryRoutes <+> supplierRoutes <+> itemRoutes <+> attachmentRoutes <+> cartRoutes).orNotFound
+      orderRoutes      = OrderRoutes.routes[F](orderService)
+    } yield {
+      (categoryRoutes <+> supplierRoutes <+> itemRoutes <+> attachmentRoutes <+> cartRoutes <+> orderRoutes).orNotFound
+    }
+
   }
 
 }

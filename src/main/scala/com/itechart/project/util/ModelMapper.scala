@@ -3,13 +3,14 @@ package com.itechart.project.util
 import com.itechart.project.domain.cart.{CartId, DatabaseCart}
 import com.itechart.project.domain.category.{CategoryId, DatabaseCategory}
 import com.itechart.project.domain.item.{DatabaseItem, DatabaseItemFilter, ItemId}
-import com.itechart.project.domain.order.OrderId
+import com.itechart.project.domain.order.{DatabaseOrder, OrderId}
 import com.itechart.project.domain.supplier.{DatabaseSupplier, SupplierId}
 import com.itechart.project.domain.user.{DatabaseUser, EncryptedPassword, Role, UserId, Username}
 import com.itechart.project.dto.auth.{AuthUser, AuthUserWithPassword}
 import com.itechart.project.dto.cart.{CartDto, CartItemDto, SingleCartDto}
 import com.itechart.project.dto.category.CategoryDto
 import com.itechart.project.dto.item.{AttachmentIdDto, FilterItemDto, ItemDto}
+import com.itechart.project.dto.order.OrderDto
 import com.itechart.project.dto.supplier.SupplierDto
 import com.itechart.project.dto.user.FullUserDto
 import eu.timepit.refined.W
@@ -168,6 +169,26 @@ object ModelMapper {
       .withFieldComputed(_.price, _.price.amount.doubleValue)
       .withFieldComputed(_.name, _.name.value)
       .withFieldComputed(_.description, _.description.value)
+      .transform
+  }
+
+  def orderDtoToDomain(orderDto: OrderDto, user: FullUserDto): DatabaseOrder = {
+    orderDto
+      .into[DatabaseOrder]
+      .withFieldConst(_.id, OrderId(orderDto.id))
+      .withFieldConst(_.address, RefinedConversion.convertParameter[String, NonEmpty](orderDto.address, "Some address"))
+      .withFieldConst(_.total, Money(orderDto.total, USD))
+      .withFieldConst(_.userId, UserId(user.id))
+      .transform
+  }
+
+  def orderDomainToDto(order: DatabaseOrder, cartDto: CartDto): OrderDto = {
+    order
+      .into[OrderDto]
+      .withFieldComputed(_.id, _.id.value)
+      .withFieldComputed(_.address, _.address.value)
+      .withFieldComputed(_.total, _.total.amount.doubleValue)
+      .withFieldConst(_.cart, cartDto)
       .transform
   }
 
