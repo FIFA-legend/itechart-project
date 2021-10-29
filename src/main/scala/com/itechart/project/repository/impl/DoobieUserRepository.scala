@@ -5,7 +5,7 @@ import com.itechart.project.domain.category.DatabaseCategory
 import com.itechart.project.domain.group.DatabaseGroup
 import com.itechart.project.domain.item.DatabaseItem
 import com.itechart.project.domain.supplier.DatabaseSupplier
-import com.itechart.project.domain.user.{DatabaseUser, UserId, Username}
+import com.itechart.project.domain.user.{DatabaseUser, Email, UserId, Username}
 import com.itechart.project.repository.impl.meta.MetaImplicits._
 import com.itechart.project.repository.UserRepository
 import doobie.Transactor
@@ -40,6 +40,13 @@ class DoobieUserRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
 
   override def findByUsername(username: Username): F[Option[DatabaseUser]] = {
     (selectUser ++ fr"WHERE username = $username")
+      .query[DatabaseUser]
+      .option
+      .transact(transactor)
+  }
+
+  def findByEmail(email: Email): F[Option[DatabaseUser]] = {
+    (selectUser ++ fr"WHERE email = $email")
       .query[DatabaseUser]
       .option
       .transact(transactor)

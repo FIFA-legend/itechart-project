@@ -1,7 +1,7 @@
 package com.itechart.project.services
 
-import cats.effect.{Blocker, ContextShift, Sync}
-import com.itechart.project.repository.{AttachmentRepository, ItemRepository}
+import cats.effect.{ContextShift, Sync}
+import com.itechart.project.repository.AttachmentRepository
 import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError
 import com.itechart.project.services.impl.AttachmentServiceImpl
 import io.chrisdavenport.log4cats.Logger

@@ -134,6 +134,21 @@ object ModelMapper {
       .transform
   }
 
+  def userDomainToFullUserDto(
+    user:       DatabaseUser,
+    suppliers:  List[SupplierDto],
+    categories: List[CategoryDto]
+  ): FullUserDto = {
+    user
+      .into[FullUserDto]
+      .withFieldComputed(_.id, _.id.value)
+      .withFieldComputed(_.username, _.username.value)
+      .withFieldComputed(_.email, _.email.value)
+      .withFieldConst(_.subscribedSuppliers, suppliers)
+      .withFieldConst(_.subscribedCategories, categories)
+      .transform
+  }
+
   def singleCartDtoToDomain(cartItem: SingleCartDto, user: FullUserDto): DatabaseCart = {
     cartItem
       .into[DatabaseCart]
