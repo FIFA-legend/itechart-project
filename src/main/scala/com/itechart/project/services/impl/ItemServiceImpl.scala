@@ -154,7 +154,7 @@ class ItemServiceImpl[F[_]: Sync: Logger](
 
       supplierDto    = supplierDomainToDto(supplier)
       categoriesDto  = categories.map(c => categoryDomainToDto(c))
-      attachmentsDto = attachments.map(attach => AttachmentIdDto(attach.id.id))
+      attachmentsDto = attachments.map(attach => AttachmentIdDto(attach.id.value))
 
       itemDto = itemDomainToDto(item, supplierDto, categoriesDto, attachmentsDto)
     } yield itemDto

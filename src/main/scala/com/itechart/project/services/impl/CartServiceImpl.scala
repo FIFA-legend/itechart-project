@@ -25,7 +25,7 @@ import com.itechart.project.util.ModelMapper.{
   cartDomainToDto,
   cartsDomainToCartDto,
   fullUserDtoToDomain,
-  itemDomainToCartItemDto,
+  itemDomainToSimpleItemDto,
   singleCartDtoToDomain
 }
 import com.itechart.project.util.RefinedConversion.validateParameter
@@ -47,7 +47,7 @@ class CartServiceImpl[F[_]: Sync: Logger](
       cartsList <- EitherT.liftF(cartRepository.findCurrentCartsByUser(userDomain))
       itemsList <- EitherT(findItemToCart(cartsList))
 
-      cartDto = cartsDomainToCartDto(cartsList.zip(itemsList.map(itemDomainToCartItemDto)))
+      cartDto = cartsDomainToCartDto(cartsList.zip(itemsList.map(itemDomainToSimpleItemDto)))
 
     } yield cartDto
 
@@ -63,7 +63,7 @@ class CartServiceImpl[F[_]: Sync: Logger](
 
       cartDomain    = singleCartDtoToDomain(cart, user)
       newItemDomain = itemDomain.copy(amount = newAmount)
-      itemDto       = itemDomainToCartItemDto(newItemDomain)
+      itemDto       = itemDomainToSimpleItemDto(newItemDomain)
 
       id          <- EitherT.liftF(cartRepository.create(cartDomain))
       _           <- EitherT.liftF(itemRepository.update(newItemDomain))

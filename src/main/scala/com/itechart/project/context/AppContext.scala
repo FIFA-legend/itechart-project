@@ -21,6 +21,7 @@ import com.itechart.project.routes.{
   AttachmentRoutes,
   CartRoutes,
   CategoryRoutes,
+  GroupRoutes,
   ItemRoutes,
   OrderRoutes,
   SupplierRoutes,
@@ -30,6 +31,7 @@ import com.itechart.project.services.{
   AttachmentService,
   CartService,
   CategoryService,
+  GroupService,
   ItemService,
   OrderService,
   SupplierService,
@@ -71,6 +73,7 @@ object AppContext {
       cartService       = CartService.of[F](cartRepository, itemRepository, userRepository, groupRepository)
       orderService      = OrderService.of[F](orderRepository, cartRepository, itemRepository, userRepository)
       userService       = UserService.of[F](userRepository, supplierRepository, categoryRepository, crypto)
+      groupService      = GroupService.of[F](groupRepository, userRepository, itemRepository)
 
       categoryRoutes   = CategoryRoutes.routes[F](categoryService)
       supplierRoutes   = SupplierRoutes.routes[F](supplierService)
@@ -79,9 +82,10 @@ object AppContext {
       cartRoutes       = CartRoutes.routes[F](cartService)
       orderRoutes      = OrderRoutes.routes[F](orderService)
       userRoutes       = UserRoutes.routes[F](userService)
+      groupRoutes      = GroupRoutes.routes[F](groupService)
     } yield {
       (categoryRoutes <+> supplierRoutes <+> itemRoutes
-        <+> attachmentRoutes <+> cartRoutes <+> orderRoutes <+> userRoutes).orNotFound
+        <+> attachmentRoutes <+> cartRoutes <+> orderRoutes <+> userRoutes <+> groupRoutes).orNotFound
     }
 
   }

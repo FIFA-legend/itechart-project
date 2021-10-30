@@ -5,7 +5,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 
 object attachment {
 
-  final case class AttachmentId(id: Long)
+  final case class AttachmentId(value: Long)
 
   type Link = NonEmptyString
 

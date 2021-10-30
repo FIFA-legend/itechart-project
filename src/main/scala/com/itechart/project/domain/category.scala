@@ -4,7 +4,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 
 object category {
 
-  final case class CategoryId(id: Long)
+  final case class CategoryId(value: Long)
 
   type CategoryName = NonEmptyString
 

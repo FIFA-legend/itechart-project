@@ -20,12 +20,7 @@ import com.itechart.project.services.error.OrderErrors.OrderValidationError.{
   OrderCartIsPartOfAnotherOrder,
   OrderNotFound
 }
-import com.itechart.project.util.ModelMapper.{
-  cartsDomainToCartDto,
-  fullUserDtoToDomain,
-  itemDomainToCartItemDto,
-  orderDomainToDto
-}
+import com.itechart.project.util.ModelMapper.{cartsDomainToCartDto, itemDomainToSimpleItemDto, orderDomainToDto}
 import com.itechart.project.util.RefinedConversion.validateParameter
 import eu.timepit.refined.collection.NonEmpty
 import io.chrisdavenport.log4cats.Logger
@@ -149,7 +144,7 @@ class OrderServiceImpl[F[_]: Sync: Logger](
         case Some(value) => value
       }
 
-      dtoItems = domainItems.map(itemDomainToCartItemDto)
+      dtoItems = domainItems.map(itemDomainToSimpleItemDto)
       dtoCart  = cartsDomainToCartDto(domainCarts.zip(dtoItems))
     } yield orderDomainToDto(order, dtoCart)
   }

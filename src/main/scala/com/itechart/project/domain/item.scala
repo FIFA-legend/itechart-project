@@ -51,14 +51,4 @@ object item {
     categories:  List[CategoryId]
   )
 
-  implicit val moneyEncoder: Encoder[Money] =
-    Encoder.encodeString.contramap[Money](_.amount.toString())
-  implicit val moneyDecoder: Decoder[Money] =
-    Decoder.decodeString.emap[Money](str => Try(Money.apply(BigDecimal(str), USD)).toEither.left.map(_.toString))
-
-  implicit val nonEmptyStringEncoder: Encoder[ItemName] =
-    Encoder.encodeString.contramap[ItemName](_.toString)
-  implicit val nonEmptyStringDecoder: Decoder[ItemName] =
-    Decoder.decodeString.emap[ItemName](str => refineV(str))
-
 }

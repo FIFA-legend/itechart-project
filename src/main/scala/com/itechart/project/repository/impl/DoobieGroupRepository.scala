@@ -1,7 +1,8 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
-import com.itechart.project.domain.group.{DatabaseGroup, GroupId}
+import cats.implicits._
+import com.itechart.project.domain.group.{DatabaseGroup, GroupId, GroupName}
 import com.itechart.project.domain.item.DatabaseItem
 import com.itechart.project.domain.user.DatabaseUser
 import com.itechart.project.repository.GroupRepository
@@ -15,6 +16,7 @@ class DoobieGroupRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transact
   private val insertGroup: Fragment = fr"INSERT INTO user_groups (name)"
   private val setGroup:    Fragment = fr"UPDATE user_groups"
   private val deleteGroup: Fragment = fr"DELETE FROM user_groups"
+  private val exists:      Fragment = fr"SELECT EXISTS"
 
   private val insertUserToGroup:   Fragment = fr"INSERT INTO users_to_groups (user_id, group_id)"
   private val deleteUserFromGroup: Fragment = fr"DELETE FROM users_to_groups"
@@ -30,7 +32,14 @@ class DoobieGroupRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transact
   }
 
   override def findById(id: GroupId): F[Option[DatabaseGroup]] = {
-    (selectGroup ++ fr"WHERE id = ${id}")
+    (selectGroup ++ fr"WHERE id = $id")
+      .query[DatabaseGroup]
+      .option
+      .transact(transactor)
+  }
+
+  def findByName(name: GroupName): F[Option[DatabaseGroup]] = {
+    (selectGroup ++ fr"WHERE name = $name")
       .query[DatabaseGroup]
       .option
       .transact(transactor)
@@ -56,7 +65,7 @@ class DoobieGroupRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transact
 
   override def create(group: DatabaseGroup): F[GroupId] = {
     (insertGroup ++ fr"VALUES (${group.name})").update
-      .withUniqueGeneratedKeys[GroupId]()
+      .withUniqueGeneratedKeys[GroupId]("id")
       .transact(transactor)
   }
 
@@ -70,6 +79,18 @@ class DoobieGroupRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transact
       .transact(transactor)
   }
 
+  override def existsUserInGroup(group: DatabaseGroup, user: DatabaseUser): F[Boolean] = {
+    val selected =
+      (exists ++ fr"(SELECT id FROM users_to_groups WHERE group_id = ${group.id} AND user_id = ${user.id})")
+        .query[Int]
+        .unique
+        .transact(transactor)
+
+    for {
+      value <- selected
+    } yield value == 1
+  }
+
   override def addUserToGroup(group: DatabaseGroup, user: DatabaseUser): F[Int] = {
     (insertUserToGroup ++ fr"VALUES (${user.id}, ${group.id})").update.run
       .transact(transactor)
@@ -80,13 +101,25 @@ class DoobieGroupRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transact
       .transact(transactor)
   }
 
+  override def existsItemInGroup(group: DatabaseGroup, item: DatabaseItem): F[Boolean] = {
+    val selected =
+      (exists ++ fr"(SELECT id FROM items_to_groups WHERE group_id = ${group.id} AND item_id = ${item.id})")
+        .query[Int]
+        .unique
+        .transact(transactor)
+
+    for {
+      value <- selected
+    } yield value == 1
+  }
+
   override def addItemToGroup(group: DatabaseGroup, item: DatabaseItem): F[Int] = {
     (insertItemToGroup ++ fr"VALUES (${item.id}, ${group.id})").update.run
       .transact(transactor)
   }
 
   override def removeItemFromGroup(group: DatabaseGroup, item: DatabaseItem): F[Int] = {
-    (deleteItemFromGroup ++ fr"WHERE user_id = ${item.id} AND group_id = ${group.id}").update.run
+    (deleteItemFromGroup ++ fr"WHERE item_id = ${item.id} AND group_id = ${group.id}").update.run
       .transact(transactor)
   }
 }

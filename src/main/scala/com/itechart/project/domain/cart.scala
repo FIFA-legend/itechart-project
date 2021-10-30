@@ -9,7 +9,7 @@ import squants.Money
 
 object cart {
 
-  final case class CartId(id: Long)
+  final case class CartId(value: Long)
 
   type Quantity = Int Refined GreaterEqual[1]
 
@@ -20,11 +20,5 @@ object cart {
     userId:   UserId,
     orderId:  Option[OrderId]
   )
-
-  final case class Cart(items: Map[Long, Quantity])
-
-  final case class CartItem(item: DatabaseItem, quantity: Quantity)
-
-  final case class CartTotal(items: List[CartItem], total: Money)
 
 }
