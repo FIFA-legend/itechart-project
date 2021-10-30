@@ -1,6 +1,7 @@
 package com.itechart.project.repository.impl
 
 import cats.effect.Bracket
+import cats.implicits._
 import com.itechart.project.domain.category.DatabaseCategory
 import com.itechart.project.domain.group.DatabaseGroup
 import com.itechart.project.domain.item.DatabaseItem
@@ -17,6 +18,7 @@ class DoobieUserRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
   private val insertUser: Fragment = fr"INSERT INTO users (username, password, email)"
   private val setUser:    Fragment = fr"UPDATE users"
   private val deleteUser: Fragment = fr"DELETE FROM users"
+  private val exists:     Fragment = fr"SELECT EXISTS"
 
   private val insertCategoryToUser   = fr"INSERT INTO users_subscriptions_on_categories (user_id, category_id)"
   private val deleteCategoryFromUser = fr"DELETE FROM users_subscriptions_on_categories"
@@ -86,6 +88,18 @@ class DoobieUserRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
     (deleteUser ++ fr"WHERE id = $id").update.run.transact(transactor)
   }
 
+  override def isUserSubscribedOnCategory(user: DatabaseUser, category: DatabaseCategory): F[Boolean] = {
+    val selected = (exists ++ fr"(SELECT id FROM users_subscriptions_on_categories"
+      ++ fr"WHERE user_id = ${user.id} AND category_id = ${category.id})")
+      .query[Int]
+      .unique
+      .transact(transactor)
+
+    for {
+      value <- selected
+    } yield value == 1
+  }
+
   override def subscribeToCategory(user: DatabaseUser, category: DatabaseCategory): F[Int] = {
     (insertCategoryToUser ++ fr"VALUES (${user.id}, ${category.id})").update.run
       .transact(transactor)
@@ -94,6 +108,18 @@ class DoobieUserRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
   override def unsubscribeFromCategory(user: DatabaseUser, category: DatabaseCategory): F[Int] = {
     (deleteCategoryFromUser ++ fr"WHERE user_id = ${user.id} AND category_id = ${category.id}").update.run
       .transact(transactor)
+  }
+
+  override def isUserSubscribedOnSupplier(user: DatabaseUser, supplier: DatabaseSupplier): F[Boolean] = {
+    val selected = (exists ++ fr"(SELECT id FROM users_subscriptions_on_suppliers"
+      ++ fr"WHERE user_id = ${user.id} AND supplier_id = ${supplier.id})")
+      .query[Int]
+      .unique
+      .transact(transactor)
+
+    for {
+      value <- selected
+    } yield value == 1
   }
 
   override def subscribeToSupplier(user: DatabaseUser, supplier: DatabaseSupplier): F[Int] = {

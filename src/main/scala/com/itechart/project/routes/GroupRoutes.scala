@@ -4,8 +4,8 @@ import cats.effect.Sync
 import cats.implicits._
 import com.itechart.project.dto.group.GroupDto
 import com.itechart.project.services.GroupService
-import com.itechart.project.services.error.GroupValidationErrors.GroupValidationError
-import com.itechart.project.services.error.GroupValidationErrors.GroupValidationError.{
+import com.itechart.project.services.error.GroupErrors.GroupValidationError
+import com.itechart.project.services.error.GroupErrors.GroupValidationError.{
   GroupNameInUse,
   GroupNotFound,
   InvalidGroupName,
@@ -14,6 +14,7 @@ import com.itechart.project.services.error.GroupValidationErrors.GroupValidation
   UserIsInGroup,
   UserNotFound
 }
+import io.chrisdavenport.log4cats.Logger
 import org.http4s.{EntityEncoder, HttpRoutes, Response}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
@@ -22,7 +23,7 @@ import scala.util.Try
 
 object GroupRoutes {
 
-  def routes[F[_]: Sync](groupService: GroupService[F]): HttpRoutes[F] = {
+  def routes[F[_]: Sync: Logger](groupService: GroupService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -144,11 +145,11 @@ object GroupRoutes {
     ): F[Response[F]] =
       result
         .flatMap {
-          case Left(error) => groupErrorToHttpResponse(error)
+          case Left(error) => groupErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
           case Right(dto)  => Ok(dto)
         }
         .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage)
+          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
         }
 
     allGroups <+> allGroupsByUser <+> allGroupsByItem <+> getGroup <+> createGroup <+> updateGroup() <+>

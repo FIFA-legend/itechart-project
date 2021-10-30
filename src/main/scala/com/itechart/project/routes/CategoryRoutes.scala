@@ -6,10 +6,13 @@ import com.itechart.project.dto.category.CategoryDto
 import com.itechart.project.services.CategoryService
 import com.itechart.project.services.error.CategoryErrors.CategoryValidationError
 import com.itechart.project.services.error.CategoryErrors.CategoryValidationError.{
-  CategoryAlreadyExists,
+  CategoryInUse,
+  CategoryIsConnected,
   CategoryNotFound,
-  InvalidCategoryName
+  InvalidCategoryName,
+  UnsupportedCategoryError
 }
+import io.chrisdavenport.log4cats.Logger
 import org.http4s.{EntityEncoder, HttpRoutes, Response}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
@@ -18,7 +21,7 @@ import scala.util.Try
 
 object CategoryRoutes {
 
-  def routes[F[_]: Sync](categoryService: CategoryService[F]): HttpRoutes[F] = {
+  def routes[F[_]: Sync: Logger](categoryService: CategoryService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -69,9 +72,11 @@ object CategoryRoutes {
 
     def categoryErrorToHttpResponse(error: CategoryValidationError): F[Response[F]] = {
       error match {
-        case e: CategoryNotFound      => NotFound(e.message)
-        case e: CategoryAlreadyExists => Conflict(e.message)
+        case e: CategoryNotFound    => NotFound(e.message)
+        case e: CategoryInUse       => Conflict(e.message)
+        case e: CategoryIsConnected => Conflict(e.message)
         case e @ InvalidCategoryName => BadRequest(e.message)
+        case e: UnsupportedCategoryError => BadRequest(e.message)
 
         case e => BadRequest(e.message)
       }
@@ -84,11 +89,11 @@ object CategoryRoutes {
     ): F[Response[F]] =
       result
         .flatMap {
-          case Left(error) => categoryErrorToHttpResponse(error)
+          case Left(error) => categoryErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
           case Right(dto)  => Ok(dto)
         }
         .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage)
+          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
         }
 
     allCategories <+> getCategory <+> updateCategory() <+> createCategory <+> deleteCategory()

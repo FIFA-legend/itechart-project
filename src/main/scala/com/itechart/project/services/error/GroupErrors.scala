@@ -4,7 +4,7 @@ import com.itechart.project.domain.group.GroupName
 
 import scala.util.control.NoStackTrace
 
-object GroupValidationErrors {
+object GroupErrors {
 
   sealed trait GroupValidationError extends RuntimeException with NoStackTrace {
     def message: String

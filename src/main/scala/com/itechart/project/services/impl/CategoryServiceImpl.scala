@@ -9,69 +9,79 @@ import com.itechart.project.repository.CategoryRepository
 import com.itechart.project.services.CategoryService
 import com.itechart.project.services.error.CategoryErrors.CategoryValidationError
 import com.itechart.project.services.error.CategoryErrors.CategoryValidationError.{
-  CategoryAlreadyExists,
+  CategoryInUse,
+  CategoryIsConnected,
   CategoryNotFound,
-  InvalidCategoryName
+  InvalidCategoryName,
+  UnsupportedCategoryError
 }
 import com.itechart.project.util.ModelMapper._
 import com.itechart.project.util.RefinedConversion._
 import eu.timepit.refined.collection.NonEmpty
 import io.chrisdavenport.log4cats.Logger
 
+import java.sql.SQLIntegrityConstraintViolationException
+
 class CategoryServiceImpl[F[_]: Sync: Logger](categoryRepository: CategoryRepository[F]) extends CategoryService[F] {
   override def findAllCategories: F[List[CategoryDto]] = {
-    Logger[F].info(s"Selecting all categories from database")
     for {
+      _          <- Logger[F].info(s"Selecting all categories from database")
       categories <- categoryRepository.all
       category   <- categories.traverse(c => categoryDomainToDto(c).pure[F])
+      _          <- Logger[F].info(s"Selected ${categories.size} categories from database")
     } yield category
   }
 
   override def findById(id: Long): F[Either[CategoryValidationError, CategoryDto]] = {
-    Logger[F].info(s"Selecting category with id = $id from database")
     val result: EitherT[F, CategoryValidationError, CategoryDto] = for {
-      category <- EitherT.fromOptionF[F, CategoryValidationError, DatabaseCategory](
-        categoryRepository.findById(CategoryId(id)),
-        CategoryNotFound(id)
-      )
-      dto = categoryDomainToDto(category)
-    } yield dto
+      _          <- EitherT.liftF(Logger[F].info(s"Selecting category with id = $id from database"))
+      category   <- EitherT.fromOptionF(categoryRepository.findById(CategoryId(id)), CategoryNotFound(id))
+      dtoCategory = categoryDomainToDto(category)
+      _          <- EitherT.liftF(Logger[F].info(s"Category with id = $id selected successfully"))
+    } yield dtoCategory
 
     result.value
   }
 
   override def createCategory(category: CategoryDto): F[Either[CategoryValidationError, CategoryDto]] = {
-    Logger[F].info(s"Creating new category in database")
     val result: EitherT[F, CategoryValidationError, CategoryDto] = for {
-      _     <- EitherT(validateCategory(category).pure[F])
-      domain = categoryDtoToDomain(category)
-      _     <- EitherT(existsByName(domain))
+      _             <- EitherT.liftF(Logger[F].info(s"Creating new category in database"))
+      _             <- EitherT(validateCategory(category).pure[F])
+      domainCategory = categoryDtoToDomain(category)
+      _             <- EitherT(existsByName(domainCategory))
 
-      id <- EitherT.liftF(categoryRepository.create(domain))
-    } yield categoryDomainToDto(domain.copy(id = id))
+      id <- EitherT.liftF(categoryRepository.create(domainCategory))
+      _  <- EitherT.liftF(Logger[F].info(s"New category created successfully. It's id = $id"))
+    } yield categoryDomainToDto(domainCategory.copy(id = id))
 
     result.value
   }
 
   override def updateCategory(category: CategoryDto): F[Either[CategoryValidationError, CategoryDto]] = {
-    Logger[F].info(s"Updating category with id = ${category.id} in database")
     val result: EitherT[F, CategoryValidationError, CategoryDto] = for {
-      _     <- EitherT.fromOptionF(categoryRepository.findById(CategoryId(category.id)), CategoryNotFound(category.id))
-      _     <- EitherT(validateCategory(category).pure[F])
-      domain = categoryDtoToDomain(category)
-      _     <- EitherT(existsByName(domain))
+      _ <- EitherT.liftF(Logger[F].info(s"Updating category with id = ${category.id} in database"))
+      _ <- EitherT.fromOptionF(categoryRepository.findById(CategoryId(category.id)), CategoryNotFound(category.id))
+      _ <- EitherT(validateCategory(category).pure[F])
 
-      _ <- EitherT.liftF(categoryRepository.update(domain))
-    } yield categoryDomainToDto(domain)
+      domainCategory = categoryDtoToDomain(category)
+      _             <- EitherT(existsByName(domainCategory))
+
+      updated <- EitherT.liftF(categoryRepository.update(domainCategory))
+      _       <- EitherT.liftF(Logger[F].info(s"Category with id = ${category.id} update status: ${updated != 0}"))
+    } yield categoryDomainToDto(domainCategory)
 
     result.value
   }
 
   override def deleteCategory(id: Long): F[Either[CategoryValidationError, Boolean]] = {
-    Logger[F].info(s"Deleting category with id = $id from database")
     val result: EitherT[F, CategoryValidationError, Boolean] = for {
-      _       <- EitherT.fromOptionF(categoryRepository.findById(CategoryId(id)), CategoryNotFound(id))
-      deleted <- EitherT.liftF(categoryRepository.delete(CategoryId(id)))
+      _ <- EitherT.liftF(Logger[F].info(s"Deleting category with id = $id from database"))
+      _ <- EitherT.fromOptionF(categoryRepository.findById(CategoryId(id)), CategoryNotFound(id))
+      deleted <- EitherT(categoryRepository.delete(CategoryId(id)).attempt).leftMap {
+        case _: SQLIntegrityConstraintViolationException => CategoryIsConnected(id)
+        case error => UnsupportedCategoryError(error.getMessage)
+      }
+      _ <- EitherT.liftF(Logger[F].info(s"Category with id = $id delete status: ${deleted != 0}"))
     } yield deleted != 0
 
     result.value
@@ -80,7 +90,7 @@ class CategoryServiceImpl[F[_]: Sync: Logger](categoryRepository: CategoryReposi
   private def existsByName(category: DatabaseCategory): F[Either[CategoryValidationError, DatabaseCategory]] = {
     categoryRepository.findByName(category.name).map {
       case None    => category.asRight[CategoryValidationError]
-      case Some(_) => CategoryAlreadyExists(category.name.value).asLeft[DatabaseCategory]
+      case Some(_) => CategoryInUse(category.name.value).asLeft[DatabaseCategory]
     }
   }
 

@@ -45,6 +45,26 @@ object UserErrors {
     final case class EmailInUse(email: Email) extends UserValidationError {
       override def message: String = s"Email `${email.value}` is taken already"
     }
+
+    // 404
+    final case class SupplierNotFound(supplierId: Long) extends UserValidationError {
+      override def message: String = s"The supplier with id `$supplierId` is not found"
+    }
+
+    // 404
+    final case class CategoryNotFound(categoryId: Long) extends UserValidationError {
+      override def message: String = s"The category with id `$categoryId` is not found"
+    }
+
+    // 409
+    final case class SupplierIsSubscribed(userId: Long, supplierId: Long) extends UserValidationError {
+      override def message: String = s"The user with id `$userId` subscribed supplier with id `$supplierId` already"
+    }
+
+    // 409
+    final case class CategoryIsSubscribed(userId: Long, categoryId: Long) extends UserValidationError {
+      override def message: String = s"The user with id `$userId` subscribed category with id `$categoryId` already"
+    }
   }
 
 }

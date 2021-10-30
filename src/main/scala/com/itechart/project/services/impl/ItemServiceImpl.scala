@@ -51,13 +51,16 @@ class ItemServiceImpl[F[_]: Sync: Logger](
 ) extends ItemService[F] {
   override def findAllItems: F[List[ItemDto]] = {
     for {
+      _        <- Logger[F].info(s"Selecting all items from database")
       items    <- itemRepository.all
       itemsDto <- items.traverse(itemToDto)
+      _        <- Logger[F].info(s"Selected ${items.size} items from database")
     } yield itemsDto
   }
 
   override def findAllByUser(user: FullUserDto): F[List[ItemDto]] = {
     for {
+      _                 <- Logger[F].info(s"Selecting all items from database for user with id = ${user.id}")
       availableItems    <- itemRepository.findByStatus(AvailabilityStatus.Available)
       notAvailableItems <- itemRepository.findByStatus(AvailabilityStatus.NotAvailable)
       userDomain         = fullUserDtoToDomain(user)
@@ -72,31 +75,40 @@ class ItemServiceImpl[F[_]: Sync: Logger](
         .appendedAll(groupItems.flatten)
         .distinct
       itemsDto <- allItems.traverse(itemToDto)
+      _        <- Logger[F].info(s"Selected ${allItems.size} items from database for user with id = ${user.id}")
     } yield itemsDto
   }
 
   override def findAllByFilter(filter: FilterItemDto): F[List[ItemDto]] = {
     for {
+      _                <- Logger[F].info(s"Selecting all items from database by filter: $filter")
       filteredItems    <- itemRepository.filter(filterItemDtoToDomain(filter))
       filteredItemsDto <- filteredItems.traverse(itemToDto)
+      _                <- Logger[F].info(s"Selected ${filteredItems.size} items from database by filter: $filter")
     } yield filteredItemsDto
   }
 
   def findAllByUserAndFilter(user: FullUserDto, filter: FilterItemDto): F[List[ItemDto]] = {
     for {
+      _             <- Logger[F].info(s"Selecting all items from database for user with id = ${user.id} by filter: $filter")
       filteredItems <- findAllByFilter(filter)
       userItems     <- findAllByUser(user)
       result         = filteredItems.toSet.intersect(userItems.toSet)
+      _ <- Logger[F].info(
+        s"Selected ${result.size} items from database for user with id = ${user.id} by filter: $filter"
+      )
     } yield result.toList
   }
 
   override def findById(id: Long): F[Either[ItemValidationError, ItemDto]] = {
     val result: EitherT[F, ItemValidationError, ItemDto] = for {
+      _ <- EitherT.liftF(Logger[F].info(s"Selecting item with id = $id from database"))
       item <- EitherT.fromOptionF[F, ItemValidationError, DatabaseItem](
         itemRepository.findById(ItemId(id)),
         ItemNotFound(id)
       )
       dto <- EitherT.liftF(itemToDto(item))
+      _   <- EitherT.liftF(Logger[F].info(s"Item with id = $id selected successfully"))
     } yield dto
 
     result.value
@@ -104,6 +116,7 @@ class ItemServiceImpl[F[_]: Sync: Logger](
 
   override def createItem(item: ItemDto): F[Either[ItemValidationError, ItemDto]] = {
     val result: EitherT[F, ItemValidationError, ItemDto] = for {
+      _               <- EitherT.liftF(Logger[F].info(s"Creating new item in database"))
       _               <- EitherT(validateItem(item).pure[F])
       _               <- EitherT(validateSupplier(item.supplier))
       _               <- EitherT(validateCategories(item.categories))
@@ -113,6 +126,7 @@ class ItemServiceImpl[F[_]: Sync: Logger](
       id          <- EitherT.liftF(itemRepository.create(domainItem))
       _           <- EitherT.liftF(categoryRepository.createLinksToItem(domainItem, domainCategories))
       returnValue <- EitherT.liftF(itemToDto(domainItem.copy(id = id)))
+      _           <- EitherT.liftF(Logger[F].info(s"New item created successfully. It's id = $id"))
     } yield returnValue
 
     result.value
@@ -120,6 +134,7 @@ class ItemServiceImpl[F[_]: Sync: Logger](
 
   override def updateItem(item: ItemDto): F[Either[ItemValidationError, ItemDto]] = {
     val result: EitherT[F, ItemValidationError, ItemDto] = for {
+      _               <- EitherT.liftF(Logger[F].info(s"Updating item with id = ${item.id} in database"))
       _               <- EitherT.fromOptionF(itemRepository.findById(ItemId(item.id)), ItemNotFound(item.id))
       _               <- EitherT(validateItem(item).pure[F])
       _               <- EitherT(validateSupplier(item.supplier))
@@ -127,9 +142,10 @@ class ItemServiceImpl[F[_]: Sync: Logger](
       domainItem       = itemDtoToDomain(item)
       domainCategories = item.categories.map(categoryDtoToDomain)
 
-      _           <- EitherT.liftF(itemRepository.update(domainItem))
-      _           <- EitherT.liftF(categoryRepository.updateLinksToItem(domainItem, domainCategories))
-      returnValue <- EitherT.liftF(itemToDto(domainItem))
+      updatedItem  <- EitherT.liftF(itemRepository.update(domainItem))
+      updatedLinks <- EitherT.liftF(categoryRepository.updateLinksToItem(domainItem, domainCategories))
+      returnValue  <- EitherT.liftF(itemToDto(domainItem))
+      _            <- EitherT.liftF(Logger[F].info(s"Item with id = ${item.id} update status: ${updatedItem + updatedLinks != 0}"))
     } yield returnValue
 
     result.value
@@ -137,10 +153,12 @@ class ItemServiceImpl[F[_]: Sync: Logger](
 
   override def deleteItem(id: Long): F[Either[ItemValidationError, Boolean]] = {
     val result: EitherT[F, ItemValidationError, Boolean] = for {
+      _    <- EitherT.liftF(Logger[F].info(s"Deleting item with id = $id from database"))
       item <- EitherT.fromOptionF(itemRepository.findById(ItemId(id)), ItemNotFound(id))
 
       _       <- EitherT.liftF(categoryRepository.deleteLinksToItem(item))
       deleted <- EitherT.liftF(itemRepository.delete(ItemId(id)))
+      _       <- EitherT.liftF(Logger[F].info(s"Category with id = $id delete status: ${deleted != 0}"))
     } yield deleted != 0
 
     result.value

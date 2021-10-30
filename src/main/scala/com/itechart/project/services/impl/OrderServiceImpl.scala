@@ -34,16 +34,22 @@ class OrderServiceImpl[F[_]: Sync: Logger](
 ) extends OrderService[F] {
   override def findAllOrders: F[List[OrderDto]] = {
     for {
+      _            <- Logger[F].info(s"Selecting all orders from database")
       domainOrders <- orderRepository.all
       dtoOrders    <- domainOrders.map(fulfillOrder).sequence
+      _            <- Logger[F].info(s"Selected ${domainOrders.size} orders from database")
     } yield dtoOrders
   }
 
   override def findAllByUser(userId: Long): F[Either[OrderValidationError, List[OrderDto]]] = {
     val res: EitherT[F, OrderValidationError, List[OrderDto]] = for {
+      _                <- EitherT.liftF(Logger[F].info(s"Selecting all orders from database for user with id = $userId"))
       user             <- EitherT.fromOptionF(userRepository.findById(UserId(userId)), InvalidOrderUser(userId))
       userDomainOrders <- EitherT.liftF(orderRepository.findByUser(user))
       userDtoOrders    <- EitherT.liftF(userDomainOrders.map(fulfillOrder).sequence)
+      _ <- EitherT.liftF(
+        Logger[F].info(s"Selected ${userDomainOrders.size} orders from database for user with id = $userId")
+      )
     } yield userDtoOrders
 
     res.value
@@ -51,8 +57,10 @@ class OrderServiceImpl[F[_]: Sync: Logger](
 
   override def findById(id: Long): F[Either[OrderValidationError, OrderDto]] = {
     val res: EitherT[F, OrderValidationError, OrderDto] = for {
+      _           <- EitherT.liftF(Logger[F].info(s"Selecting order with id = $id from database"))
       domainOrder <- EitherT.fromOptionF(orderRepository.findById(OrderId(id)), OrderNotFound(id))
       dtoOrder    <- EitherT.liftF(fulfillOrder(domainOrder))
+      _           <- EitherT.liftF(Logger[F].info(s"Order with id = $id selected successfully"))
     } yield dtoOrder
 
     res.value
@@ -60,6 +68,7 @@ class OrderServiceImpl[F[_]: Sync: Logger](
 
   override def createOrder(order: OrderDto, user: FullUserDto): F[Either[OrderValidationError, OrderDto]] = {
     val res: EitherT[F, OrderValidationError, OrderDto] = for {
+      _           <- EitherT.liftF(Logger[F].info(s"Creating new order in database"))
       domainUser  <- EitherT.fromOptionF(userRepository.findById(UserId(user.id)), InvalidOrderUser(user.id))
       domainCarts <- EitherT(validateCart(order.cart))
       address     <- EitherT(validateAddress(order.address))
@@ -70,17 +79,26 @@ class OrderServiceImpl[F[_]: Sync: Logger](
       id       <- EitherT.liftF(orderRepository.create(domainOrder))
       _        <- EitherT.liftF(domainCarts.map(cart => cartRepository.update(cart.copy(orderId = Some(id)))).sequence)
       dtoOrder <- EitherT.liftF(fulfillOrder(domainOrder.copy(id = id)))
+      _        <- EitherT.liftF(Logger[F].info(s"New order created successfully. It's id = $id"))
     } yield dtoOrder
 
     res.value
   }
 
   override def updateOrderToAssigned(id: Long): F[Either[OrderValidationError, Boolean]] = {
-    updateStatus(id, DeliveryStatus.Assigned)
+    for {
+      _      <- Logger[F].info(s"Updating order with id = $id to status ASSIGNED in database")
+      result <- updateStatus(id, DeliveryStatus.Assigned)
+      _      <- Logger[F].info(s"Order with id = $id update to ASSIGNED successfully")
+    } yield result
   }
 
   override def updateOrderToDelivered(id: Long): F[Either[OrderValidationError, Boolean]] = {
-    updateStatus(id, DeliveryStatus.Delivered)
+    for {
+      _      <- Logger[F].info(s"Updating order with id = $id to status DELIVERED in database")
+      result <- updateStatus(id, DeliveryStatus.Delivered)
+      _      <- Logger[F].info(s"Order with id = $id update to DELIVERED successfully")
+    } yield result
   }
 
   private def countOrderSum(carts: List[DatabaseCart]): F[Double] = {

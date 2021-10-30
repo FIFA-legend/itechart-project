@@ -14,6 +14,7 @@ import com.itechart.project.services.error.UserErrors.UserValidationError.{
   UserNotFound,
   UsernameInUse
 }
+import io.chrisdavenport.log4cats.Logger
 import org.http4s.{EntityEncoder, HttpRoutes, Response}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
@@ -22,7 +23,7 @@ import scala.util.Try
 
 object UserRoutes {
 
-  def routes[F[_]: Sync](userService: UserService[F]): HttpRoutes[F] = {
+  def routes[F[_]: Sync: Logger](userService: UserService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -59,6 +60,42 @@ object UserRoutes {
       marshalResponse(res)
     }
 
+    def subscribeOnCategory(): HttpRoutes[F] = HttpRoutes.of[F] {
+      case POST -> Root / "user" / LongVar(userId) / "category" / LongVar(categoryId) / "subscribe" =>
+        val res = for {
+          updated <- userService.subscribeCategory(userId, categoryId)
+        } yield updated
+
+        marshalResponse(res)
+    }
+
+    def unsubscribeFromCategory(): HttpRoutes[F] = HttpRoutes.of[F] {
+      case POST -> Root / "user" / LongVar(userId) / "category" / LongVar(categoryId) / "unsubscribe" =>
+        val res = for {
+          updated <- userService.unsubscribeCategory(userId, categoryId)
+        } yield updated
+
+        marshalResponse(res)
+    }
+
+    def subscribeOnSupplier(): HttpRoutes[F] = HttpRoutes.of[F] {
+      case POST -> Root / "user" / LongVar(userId) / "supplier" / LongVar(supplierId) / "subscribe" =>
+        val res = for {
+          updated <- userService.subscribeSupplier(userId, supplierId)
+        } yield updated
+
+        marshalResponse(res)
+    }
+
+    def unsubscribeFromSupplier(): HttpRoutes[F] = HttpRoutes.of[F] {
+      case POST -> Root / "user" / LongVar(userId) / "supplier" / LongVar(supplierId) / "unsubscribe" =>
+        val res = for {
+          updated <- userService.unsubscribeSupplier(userId, supplierId)
+        } yield updated
+
+        marshalResponse(res)
+    }
+
     object LongVar {
       def unapply(value: String): Option[Long] = Try(value.toLong).toOption
     }
@@ -84,14 +121,15 @@ object UserRoutes {
     ): F[Response[F]] =
       result
         .flatMap {
-          case Left(error) => userErrorToHttpResponse(error)
+          case Left(error) => userErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
           case Right(dto)  => Ok(dto)
         }
         .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage)
+          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
         }
 
-    allUsers <+> getUser <+> createUser <+> updateUser()
+    allUsers <+> getUser <+> createUser <+> updateUser() <+> subscribeOnCategory() <+> unsubscribeFromCategory() <+>
+      subscribeOnSupplier() <+> unsubscribeFromSupplier()
   }
 
 }
