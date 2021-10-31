@@ -16,6 +16,8 @@ trait UserRepository[F[_]] {
   def findByEmail(email:               Email):                 F[Option[DatabaseUser]]
   def findByItem(item:                 DatabaseItem):          F[List[DatabaseUser]]
   def findByGroup(group:               DatabaseGroup):         F[List[DatabaseUser]]
+  def findByCategory(category:         DatabaseCategory):      F[List[DatabaseUser]]
+  def findBySupplier(supplier:         DatabaseSupplier):      F[List[DatabaseUser]]
   def create(user:                     DatabaseUser):          F[UserId]
   def update(user:                     DatabaseUser):          F[Int]
   def delete(id:                       UserId): F[Int]

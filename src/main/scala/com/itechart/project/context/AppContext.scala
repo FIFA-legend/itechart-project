@@ -6,6 +6,8 @@ import com.itechart.project.authentication.Crypto
 import com.itechart.project.configuration.AuthenticationSettings
 import com.itechart.project.configuration.ConfigurationTypes.{AppConfiguration, PasswordSalt, RedisConfiguration}
 import com.itechart.project.configuration.DatabaseSettings.{migrator, transactor}
+import com.itechart.project.configuration.MailSettings.mailer
+import com.itechart.project.mailer.MailService
 import com.itechart.project.modules.Security
 import com.itechart.project.repository.{
   AttachmentRepository,
@@ -53,6 +55,8 @@ object AppContext {
       migrator <- Resource.eval(migrator[F](configuration.db))
       _        <- Resource.eval(migrator.migrate())
 
+      mailer <- Resource.eval(mailer(configuration.mail))
+
       blocker <- Blocker[F]
       crypto  <- Resource.eval(Crypto.of[F](PasswordSalt("Nikita")))
 
@@ -65,10 +69,19 @@ object AppContext {
       userRepository       = UserRepository.of[F](tx)
       orderRepository      = OrderRepository.of[F](tx)
 
+      mailService     = MailService.of(mailer, configuration.mail)
       categoryService = CategoryService.of[F](categoryRepository)
       supplierService = SupplierService.of[F](supplierRepository)
       itemService = ItemService
-        .of[F](itemRepository, categoryRepository, supplierRepository, attachmentRepository, groupRepository)
+        .of[F](
+          itemRepository,
+          categoryRepository,
+          supplierRepository,
+          attachmentRepository,
+          groupRepository,
+          userRepository,
+          mailService
+        )
       attachmentService = AttachmentService.of(attachmentRepository)
       cartService       = CartService.of[F](cartRepository, itemRepository, userRepository, groupRepository)
       orderService      = OrderService.of[F](orderRepository, cartRepository, itemRepository, userRepository)

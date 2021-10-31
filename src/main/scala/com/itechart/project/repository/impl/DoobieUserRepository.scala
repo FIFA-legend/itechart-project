@@ -72,6 +72,24 @@ class DoobieUserRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transacto
       .transact(transactor)
   }
 
+  override def findByCategory(category: DatabaseCategory): F[List[DatabaseUser]] = {
+    (selectUser ++ fr"INNER JOIN users_subscriptions_on_categories"
+      ++ fr"ON users.id = users_subscriptions_on_categories.user_id"
+      ++ fr"WHERE users_subscriptions_on_categories.category_id = ${category.id}")
+      .query[DatabaseUser]
+      .to[List]
+      .transact(transactor)
+  }
+
+  override def findBySupplier(supplier: DatabaseSupplier): F[List[DatabaseUser]] = {
+    (selectUser ++ fr"INNER JOIN users_subscriptions_on_suppliers"
+      ++ fr"ON users.id = users_subscriptions_on_suppliers.user_id"
+      ++ fr"WHERE users_subscriptions_on_suppliers.supplier_id = ${supplier.id}")
+      .query[DatabaseUser]
+      .to[List]
+      .transact(transactor)
+  }
+
   override def create(user: DatabaseUser): F[UserId] = {
     (insertUser ++ fr"VALUES (${user.username}, ${user.password}, ${user.email})").update
       .withUniqueGeneratedKeys[UserId]("id")

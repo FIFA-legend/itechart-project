@@ -88,9 +88,7 @@ libraryDependencies ++= Seq(
   "dev.profunktor"           %% "redis4cats-effects"            % "1.0.0",
   "io.scalaland"             %% "chimney"                       % "0.6.1",
   "tf.tofu"                  %% s"derevo-core"                  % "0.12.6",
-  "co.fs2"                   %% "fs2-core"                      % "2.5.10",
-  "co.fs2"                   %% "fs2-io"                        % "2.5.10",
-  "co.fs2"                   %% "fs2-reactive-streams"          % "2.5.10"
+  "com.github.daddykotex"    %% "courier"                       % "3.0.1"
 )
 
 addCompilerPlugin(

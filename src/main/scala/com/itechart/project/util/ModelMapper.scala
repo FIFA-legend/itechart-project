@@ -88,7 +88,7 @@ object ModelMapper {
         _.description,
         RefinedConversion.convertParameter[String, NonEmpty](itemDto.description, "Item description")
       )
-      .withFieldConst(_.supplier, SupplierId(itemDto.id))
+      .withFieldConst(_.supplier, SupplierId(itemDto.supplier.id))
       .transform
   }
 
