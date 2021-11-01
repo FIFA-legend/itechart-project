@@ -2,16 +2,19 @@ package com.itechart.project.util
 
 import com.itechart.project.domain.cart.{CartId, DatabaseCart}
 import com.itechart.project.domain.category.{CategoryId, DatabaseCategory}
+import com.itechart.project.domain.group.{DatabaseGroup, GroupId}
 import com.itechart.project.domain.item.{DatabaseItem, DatabaseItemFilter, ItemId}
-import com.itechart.project.domain.order.OrderId
+import com.itechart.project.domain.order.{DatabaseOrder, OrderId}
 import com.itechart.project.domain.supplier.{DatabaseSupplier, SupplierId}
 import com.itechart.project.domain.user.{DatabaseUser, EncryptedPassword, Role, UserId, Username}
 import com.itechart.project.dto.auth.{AuthUser, AuthUserWithPassword}
-import com.itechart.project.dto.cart.{CartDto, CartItemDto, SingleCartDto}
+import com.itechart.project.dto.cart.{CartDto, SimpleItemDto, SingleCartDto}
 import com.itechart.project.dto.category.CategoryDto
+import com.itechart.project.dto.group.{GroupDto, SimpleUserDto}
 import com.itechart.project.dto.item.{AttachmentIdDto, FilterItemDto, ItemDto}
+import com.itechart.project.dto.order.OrderDto
 import com.itechart.project.dto.supplier.SupplierDto
-import com.itechart.project.dto.user.FullUserDto
+import com.itechart.project.dto.user.{FullUserDto, UserDto}
 import eu.timepit.refined.W
 import eu.timepit.refined.predicates.all.NonEmpty
 import io.scalaland.chimney.dsl.TransformerOps
@@ -25,7 +28,7 @@ object ModelMapper {
   def categoryDomainToDto(category: DatabaseCategory): CategoryDto = {
     category
       .into[CategoryDto]
-      .withFieldComputed(_.id, _.id.id)
+      .withFieldComputed(_.id, _.id.value)
       .withFieldComputed(_.name, _.name.value)
       .transform
   }
@@ -41,7 +44,7 @@ object ModelMapper {
   def supplierDomainToDto(supplier: DatabaseSupplier): SupplierDto = {
     supplier
       .into[SupplierDto]
-      .withFieldComputed(_.id, _.id.id)
+      .withFieldComputed(_.id, _.id.value)
       .withFieldComputed(_.name, _.name.value)
       .transform
   }
@@ -85,6 +88,7 @@ object ModelMapper {
         _.description,
         RefinedConversion.convertParameter[String, NonEmpty](itemDto.description, "Item description")
       )
+      .withFieldConst(_.supplier, SupplierId(itemDto.supplier.id))
       .transform
   }
 
@@ -133,6 +137,21 @@ object ModelMapper {
       .transform
   }
 
+  def userDomainToFullUserDto(
+    user:       DatabaseUser,
+    suppliers:  List[SupplierDto],
+    categories: List[CategoryDto]
+  ): FullUserDto = {
+    user
+      .into[FullUserDto]
+      .withFieldComputed(_.id, _.id.value)
+      .withFieldComputed(_.username, _.username.value)
+      .withFieldComputed(_.email, _.email.value)
+      .withFieldConst(_.subscribedSuppliers, suppliers)
+      .withFieldConst(_.subscribedCategories, categories)
+      .transform
+  }
+
   def singleCartDtoToDomain(cartItem: SingleCartDto, user: FullUserDto): DatabaseCart = {
     cartItem
       .into[DatabaseCart]
@@ -144,30 +163,77 @@ object ModelMapper {
       .transform
   }
 
-  def cartDomainToDto(cart: DatabaseCart, itemDto: CartItemDto): SingleCartDto = {
+  def cartDomainToDto(cart: DatabaseCart, itemDto: SimpleItemDto): SingleCartDto = {
     cart
       .into[SingleCartDto]
-      .withFieldComputed(_.id, _.id.id)
+      .withFieldComputed(_.id, _.id.value)
       .withFieldComputed(_.quantity, _.quantity.value)
       .withFieldComputed(_.orderId, _.orderId.map(_.value))
       .withFieldConst(_.item, itemDto)
       .transform
   }
 
-  def cartsDomainToCartDto(list: List[(DatabaseCart, CartItemDto)]): CartDto = {
+  def cartsDomainToCartDto(list: List[(DatabaseCart, SimpleItemDto)]): CartDto = {
     val convertedList = list.map { case (cart, item) =>
       cartDomainToDto(cart, item)
     }
     CartDto(convertedList)
   }
 
-  def itemDomainToCartItemDto(item: DatabaseItem): CartItemDto = {
+  def itemDomainToSimpleItemDto(item: DatabaseItem): SimpleItemDto = {
     item
-      .into[CartItemDto]
+      .into[SimpleItemDto]
       .withFieldComputed(_.id, _.id.value)
       .withFieldComputed(_.price, _.price.amount.doubleValue)
       .withFieldComputed(_.name, _.name.value)
       .withFieldComputed(_.description, _.description.value)
+      .transform
+  }
+
+  def orderDtoToDomain(orderDto: OrderDto, user: FullUserDto): DatabaseOrder = {
+    orderDto
+      .into[DatabaseOrder]
+      .withFieldConst(_.id, OrderId(orderDto.id))
+      .withFieldConst(_.address, RefinedConversion.convertParameter[String, NonEmpty](orderDto.address, "Some address"))
+      .withFieldConst(_.total, Money(orderDto.total, USD))
+      .withFieldConst(_.userId, UserId(user.id))
+      .transform
+  }
+
+  def orderDomainToDto(order: DatabaseOrder, cartDto: CartDto): OrderDto = {
+    order
+      .into[OrderDto]
+      .withFieldComputed(_.id, _.id.value)
+      .withFieldComputed(_.address, _.address.value)
+      .withFieldComputed(_.total, _.total.amount.doubleValue)
+      .withFieldConst(_.cart, cartDto)
+      .transform
+  }
+
+  def groupDtoToDomain(groupDto: GroupDto): DatabaseGroup = {
+    groupDto
+      .into[DatabaseGroup]
+      .withFieldConst(_.id, GroupId(groupDto.id))
+      .withFieldConst(_.name, RefinedConversion.convertParameter[String, NonEmpty](groupDto.name, "Group name"))
+      .transform
+  }
+
+  def groupDomainToDto(group: DatabaseGroup, users: List[SimpleUserDto], items: List[SimpleItemDto]): GroupDto = {
+    group
+      .into[GroupDto]
+      .withFieldComputed(_.id, _.id.value)
+      .withFieldComputed(_.name, _.name.value)
+      .withFieldConst(_.users, users)
+      .withFieldConst(_.items, items)
+      .transform
+  }
+
+  def userDomainToSimpleUserDto(user: DatabaseUser): SimpleUserDto = {
+    user
+      .into[SimpleUserDto]
+      .withFieldComputed(_.id, _.id.value)
+      .withFieldComputed(_.username, _.username.value)
+      .withFieldComputed(_.email, _.email.value)
       .transform
   }
 

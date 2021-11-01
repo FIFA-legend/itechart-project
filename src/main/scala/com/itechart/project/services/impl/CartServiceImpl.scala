@@ -25,7 +25,7 @@ import com.itechart.project.util.ModelMapper.{
   cartDomainToDto,
   cartsDomainToCartDto,
   fullUserDtoToDomain,
-  itemDomainToCartItemDto,
+  itemDomainToSimpleItemDto,
   singleCartDtoToDomain
 }
 import com.itechart.project.util.RefinedConversion.validateParameter
@@ -41,14 +41,17 @@ class CartServiceImpl[F[_]: Sync: Logger](
 
   override def findByUser(user: FullUserDto): F[Either[CartValidationError, CartDto]] = {
     val result: EitherT[F, CartValidationError, CartDto] = for {
+      _         <- EitherT.liftF(Logger[F].info(s"Selecting all carts from database for user with id = ${user.id}"))
       _         <- EitherT.fromOptionF(userRepository.findById(UserId(user.id)), InvalidCartUser(user.id))
       userDomain = fullUserDtoToDomain(user)
 
       cartsList <- EitherT.liftF(cartRepository.findCurrentCartsByUser(userDomain))
       itemsList <- EitherT(findItemToCart(cartsList))
 
-      cartDto = cartsDomainToCartDto(cartsList.zip(itemsList.map(itemDomainToCartItemDto)))
-
+      cartDto = cartsDomainToCartDto(cartsList.zip(itemsList.map(itemDomainToSimpleItemDto)))
+      _ <- EitherT.liftF(
+        Logger[F].info(s"Selected ${cartsList.size} carts from database for user with id = ${user.id}")
+      )
     } yield cartDto
 
     result.value
@@ -56,6 +59,7 @@ class CartServiceImpl[F[_]: Sync: Logger](
 
   override def createCart(cart: SingleCartDto, user: FullUserDto): F[Either[CartValidationError, SingleCartDto]] = {
     val result: EitherT[F, CartValidationError, SingleCartDto] = for {
+      _          <- EitherT.liftF(Logger[F].info(s"Creating new cart in database"))
       userDomain <- EitherT(validateUser(user.id))
       itemDomain <- EitherT(validateItem(cart.item.id, user))
       _          <- EitherT(validateItemDuplicates(userDomain, itemDomain))
@@ -63,11 +67,12 @@ class CartServiceImpl[F[_]: Sync: Logger](
 
       cartDomain    = singleCartDtoToDomain(cart, user)
       newItemDomain = itemDomain.copy(amount = newAmount)
-      itemDto       = itemDomainToCartItemDto(newItemDomain)
+      itemDto       = itemDomainToSimpleItemDto(newItemDomain)
 
       id          <- EitherT.liftF(cartRepository.create(cartDomain))
       _           <- EitherT.liftF(itemRepository.update(newItemDomain))
       returnValue <- EitherT.liftF(cartDomainToDto(cartDomain.copy(id = id), itemDto).pure[F])
+      _           <- EitherT.liftF(Logger[F].info(s"New cart created successfully. It's id = $id"))
     } yield returnValue
 
     result.value
@@ -75,6 +80,7 @@ class CartServiceImpl[F[_]: Sync: Logger](
 
   override def updateCart(cart: SingleCartDto, user: FullUserDto): F[Either[CartValidationError, SingleCartDto]] = {
     val result: EitherT[F, CartValidationError, SingleCartDto] = for {
+      _          <- EitherT.liftF(Logger[F].info(s"Updating cart with id = ${cart.id} in database"))
       _          <- EitherT(validateUser(user.id))
       cartDomain <- EitherT(validateCart(cart.id))
       itemDomain <- EitherT(validateItem(cart.item.id, user))
@@ -84,8 +90,9 @@ class CartServiceImpl[F[_]: Sync: Logger](
       )
       newItemAmount <- EitherT(validateQuantityOnUpdate(cart.quantity, cartDomain, itemDomain).pure[F])
 
-      _ <- EitherT.liftF(cartRepository.update(cartDomain.copy(quantity = newCartQuantity)))
-      _ <- EitherT.liftF(itemRepository.update(itemDomain.copy(amount = newItemAmount)))
+      updated <- EitherT.liftF(cartRepository.update(cartDomain.copy(quantity = newCartQuantity)))
+      _       <- EitherT.liftF(itemRepository.update(itemDomain.copy(amount = newItemAmount)))
+      _       <- EitherT.liftF(Logger[F].info(s"Cart with id = ${cart.id} update status: ${updated != 0}"))
     } yield cart
 
     result.value
@@ -93,6 +100,7 @@ class CartServiceImpl[F[_]: Sync: Logger](
 
   override def deleteCart(id: Long): F[Either[CartValidationError, Boolean]] = {
     val result: EitherT[F, CartValidationError, Boolean] = for {
+      _          <- EitherT.liftF(Logger[F].info(s"Deleting cart with id = $id from database"))
       cartDomain <- EitherT.fromOptionF(cartRepository.findById(CartId(id)), CartNotFound(id))
       itemDomain <- EitherT.fromOptionF(
         itemRepository.findById(cartDomain.itemId),
@@ -112,6 +120,7 @@ class CartServiceImpl[F[_]: Sync: Logger](
 
       deleted <- EitherT.liftF(cartRepository.delete(CartId(id)))
       _       <- EitherT.liftF(itemRepository.update(itemDomain.copy(amount = newItemAmount)))
+      _       <- EitherT.liftF(Logger[F].info(s"Cart with id = $id delete status: ${deleted != 0}"))
     } yield deleted != 0
 
     result.value

@@ -12,7 +12,8 @@ object ConfigurationTypes {
   @JsonCodec
   final case class AppConfiguration(
     server: ServerConfiguration,
-    db:     DatabaseConfiguration
+    db:     DatabaseConfiguration,
+    mail:   MailConfiguration
   )
 
   @JsonCodec
@@ -29,6 +30,14 @@ object ConfigurationTypes {
   final case class ServerConfiguration(
     host: String,
     port: Int
+  )
+
+  @JsonCodec
+  final case class MailConfiguration(
+    host:     String,
+    port:     Int,
+    sender:   String,
+    password: String
   )
 
   final case class AuthenticationConfiguration(

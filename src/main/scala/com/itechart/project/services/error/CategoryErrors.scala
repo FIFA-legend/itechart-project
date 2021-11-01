@@ -11,8 +11,7 @@ object CategoryErrors {
   object CategoryValidationError {
     // 404
     final case class CategoryNotFound(categoryId: Long) extends CategoryValidationError {
-      override def message: String =
-        s"The category with id `$categoryId` is not found"
+      override def message: String = s"The category with id `$categoryId` is not found"
     }
 
     // 400
@@ -21,9 +20,18 @@ object CategoryErrors {
     }
 
     // 409
-    final case class CategoryAlreadyExists(name: String) extends CategoryValidationError {
-      override def message: String =
-        s"The category with name `$name` already exists"
+    final case class CategoryInUse(name: String) extends CategoryValidationError {
+      override def message: String = s"The category with name `$name` already exists"
+    }
+
+    // 409
+    final case class CategoryIsConnected(categoryId: Long) extends CategoryValidationError {
+      override def message: String = s"The category with id `$categoryId` is part of other entities"
+    }
+
+    // 400
+    final case class UnsupportedCategoryError(msg: String) extends CategoryValidationError {
+      override def message: String = msg
     }
   }
 

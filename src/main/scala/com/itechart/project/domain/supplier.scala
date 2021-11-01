@@ -4,7 +4,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 
 object supplier {
 
-  final case class SupplierId(id: Long)
+  final case class SupplierId(value: Long)
 
   type SupplierName = NonEmptyString
 

@@ -15,6 +15,7 @@ import com.itechart.project.services.error.ItemErrors.ItemValidationError.{
   InvalidItemSupplier,
   ItemNotFound
 }
+import io.chrisdavenport.log4cats.Logger
 import io.circe.generic.JsonCodec
 import org.http4s.{EntityEncoder, HttpRoutes, Response}
 import org.http4s.dsl.Http4sDsl
@@ -24,7 +25,7 @@ import scala.util.Try
 
 object ItemRoutes {
 
-  def routes[F[_]: Sync](itemService: ItemService[F]): HttpRoutes[F] = {
+  def routes[F[_]: Sync: Logger](itemService: ItemService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -121,11 +122,11 @@ object ItemRoutes {
     ): F[Response[F]] =
       result
         .flatMap {
-          case Left(error) => itemErrorToHttpResponse(error)
+          case Left(error) => itemErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
           case Right(dto)  => Ok(dto)
         }
         .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage)
+          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
         }
 
     allItems <+> getItem <+> updateCategory() <+> createItem <+>

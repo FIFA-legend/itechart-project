@@ -7,9 +7,12 @@ import com.itechart.project.services.SupplierService
 import com.itechart.project.services.error.SupplierErrors.SupplierValidationError
 import com.itechart.project.services.error.SupplierErrors.SupplierValidationError.{
   InvalidSupplierName,
-  SupplierAlreadyExists,
-  SupplierNotFound
+  SupplierInUse,
+  SupplierIsConnected,
+  SupplierNotFound,
+  UnsupportedSupplierError
 }
+import io.chrisdavenport.log4cats.Logger
 import org.http4s.{EntityEncoder, HttpRoutes, Response}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
@@ -18,7 +21,7 @@ import scala.util.Try
 
 object SupplierRoutes {
 
-  def routes[F[_]: Sync](supplierService: SupplierService[F]): HttpRoutes[F] = {
+  def routes[F[_]: Sync: Logger](supplierService: SupplierService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -69,9 +72,11 @@ object SupplierRoutes {
 
     def supplierErrorToHttpResponse(error: SupplierValidationError): F[Response[F]] = {
       error match {
-        case e: SupplierNotFound      => NotFound(e.message)
-        case e: SupplierAlreadyExists => Conflict(e.message)
+        case e: SupplierNotFound    => NotFound(e.message)
+        case e: SupplierInUse       => Conflict(e.message)
+        case e: SupplierIsConnected => Conflict(e.message)
         case e @ InvalidSupplierName => BadRequest(e.message)
+        case e: UnsupportedSupplierError => BadRequest(e.message)
 
         case e => BadRequest(e.message)
       }
@@ -84,11 +89,11 @@ object SupplierRoutes {
     ): F[Response[F]] =
       result
         .flatMap {
-          case Left(error) => supplierErrorToHttpResponse(error)
+          case Left(error) => supplierErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
           case Right(dto)  => Ok(dto)
         }
         .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage)
+          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
         }
 
     allSuppliers <+> getSupplier <+> updateSupplier() <+> createSupplier <+> deleteSupplier()

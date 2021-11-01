@@ -4,7 +4,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 
 object group {
 
-  final case class GroupId(id: Long)
+  final case class GroupId(value: Long)
 
   type GroupName = NonEmptyString
 

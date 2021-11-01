@@ -8,6 +8,7 @@ import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError.
   AttachmentNotFound,
   InvalidItemAttachment
 }
+import io.chrisdavenport.log4cats.Logger
 import org.http4s.dsl.Http4sDsl
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.{EntityEncoder, HttpRoutes, Response, StaticFile}
@@ -16,7 +17,10 @@ import scala.util.Try
 
 object AttachmentRoutes {
 
-  def routes[F[_]: Sync: ContextShift](attachmentService: AttachmentService[F], blocker: Blocker): HttpRoutes[F] = {
+  def routes[F[_]: Sync: ContextShift: Logger](
+    attachmentService: AttachmentService[F],
+    blocker:           Blocker
+  ): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -58,11 +62,11 @@ object AttachmentRoutes {
     ): F[Response[F]] =
       result
         .flatMap {
-          case Left(error) => attachmentErrorToHttpResponse(error)
+          case Left(error) => attachmentErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
           case Right(dto)  => Ok(dto)
         }
         .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage)
+          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
         }
 
     getAttachment <+> deleteCategory()

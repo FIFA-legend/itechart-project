@@ -39,6 +39,7 @@ object ItemErrors {
       override def message: String = s"The category with id `$categoryId` doesn't exist"
     }
 
+    // 400
     final case class InvalidItemSupplier(supplierId: Long) extends ItemValidationError {
       override def message: String = s"The supplier with id `$supplierId` doesn't exist"
     }

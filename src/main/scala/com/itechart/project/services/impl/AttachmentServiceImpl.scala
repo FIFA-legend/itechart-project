@@ -20,11 +20,10 @@ class AttachmentServiceImpl[F[_]: Sync: Logger: ContextShift](
 
   override def findFileById(id: Long): F[Either[AttachmentFileError, File]] = {
     val result: EitherT[F, AttachmentFileError, File] = for {
-      attachment <- EitherT.fromOptionF[F, AttachmentFileError, DatabaseAttachment](
-        attachmentRepository.findById(AttachmentId(id)),
-        AttachmentNotFound(id)
-      )
-      file <- EitherT.liftF[F, AttachmentFileError, File](new File(path + File.separator + attachment.link).pure[F])
+      _          <- EitherT.liftF(Logger[F].info(s"Selecting file with id = $id from file system"))
+      attachment <- EitherT.fromOptionF(attachmentRepository.findById(AttachmentId(id)), AttachmentNotFound(id))
+      file       <- EitherT.liftF[F, AttachmentFileError, File](new File(path + File.separator + attachment.link).pure[F])
+      _          <- EitherT.liftF(Logger[F].info(s"File with id = $id and path = ${file.getAbsolutePath} selected successfully"))
     } yield file
 
     result.value
@@ -32,11 +31,14 @@ class AttachmentServiceImpl[F[_]: Sync: Logger: ContextShift](
 
   override def deleteFile(id: Long): F[Either[AttachmentFileError, Boolean]] = {
     val result: EitherT[F, AttachmentFileError, Boolean] = for {
-      attachment    <- EitherT.fromOptionF(attachmentRepository.findById(AttachmentId(id)), AttachmentNotFound(id))
+      _          <- EitherT.liftF(Logger[F].info(s"Deleting file with id = $id from file system"))
+      attachment <- EitherT.fromOptionF(attachmentRepository.findById(AttachmentId(id)), AttachmentNotFound(id))
+
       isFileDeleted <- EitherT.liftF(Files.deleteIfExists(Paths.get(path + File.separator + attachment.link)).pure[F])
       attachmentDeleted <-
         if (!isFileDeleted) EitherT.liftF[F, AttachmentFileError, Int](0.pure[F])
         else EitherT.liftF[F, AttachmentFileError, Int](attachmentRepository.delete(attachment.id))
+      _ <- EitherT.liftF(Logger[F].info(s"File with id = $id delete status: ${attachmentDeleted != 0}"))
     } yield attachmentDeleted != 0
 
     result.value
