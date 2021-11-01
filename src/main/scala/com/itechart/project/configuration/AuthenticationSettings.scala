@@ -42,11 +42,11 @@ object AuthenticationSettings {
         )
       ),
       CourierJwtConfiguration(
-        Secret(JwtSecretKeyConfiguration("+*5h0pp1ng_k4rt*+")),
+        Secret(JwtSecretKeyConfiguration("-*5h0pp1ng_k4rt*-")),
         Secret(JwtClaimConfiguration("{\"uuid\": \"05082001-71c3-4439-a1b2-03820263b59c\"}")),
         Secret(
           CourierUserTokenConfiguration(
-            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1dWlkIjogIjAwNGI0NDU3LTcxYzMtNDQzOS1hMWIyLTAzODIwMjYzYjU5YyJ9.L97BnPScSAKY-BLkYu8G_n8h1U4LDOURUen05082001"
+            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1dWlkIjogIjAwNGI0NDU3LTcxYzMtNDQzOS1hMWIyLTAzODIwMjYzYjU5YyJ9.L97BnPScSAKY-BLkYu8G_n8h1U4LDOURUen14O22hD4"
           )
         )
       ),

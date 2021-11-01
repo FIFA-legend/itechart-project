@@ -1,10 +1,10 @@
 package com.itechart.project.services
 
-import cats.effect.{ContextShift, Sync}
+import cats.effect.Sync
 import com.itechart.project.repository.AttachmentRepository
 import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError
 import com.itechart.project.services.impl.AttachmentServiceImpl
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 import java.io.File
 
@@ -14,7 +14,7 @@ trait AttachmentService[F[_]] {
 }
 
 object AttachmentService {
-  def of[F[_]: Sync: Logger: ContextShift](
+  def of[F[_]: Sync: Logger](
     attachmentRepository: AttachmentRepository[F]
   ): AttachmentService[F] =
     new AttachmentServiceImpl[F](attachmentRepository)

@@ -28,7 +28,7 @@ import com.itechart.project.util.ModelMapper.{categoryDomainToDto, supplierDomai
 import com.itechart.project.util.RefinedConversion.validateParameter
 import eu.timepit.refined.W
 import eu.timepit.refined.string.MatchesRegex
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 class UserServiceImpl[F[_]: Sync: Logger](
   userRepository:     UserRepository[F],

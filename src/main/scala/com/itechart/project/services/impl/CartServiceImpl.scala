@@ -30,7 +30,7 @@ import com.itechart.project.util.ModelMapper.{
 }
 import com.itechart.project.util.RefinedConversion.validateParameter
 import eu.timepit.refined.numeric.GreaterEqual
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 class CartServiceImpl[F[_]: Sync: Logger](
   cartRepository:  CartRepository[F],

@@ -1,10 +1,10 @@
 package com.itechart.project.context
 
-import cats.effect.{Async, Blocker, ContextShift, Resource}
+import cats.effect.{Async, Resource}
 import cats.implicits._
 import com.itechart.project.authentication.Crypto
 import com.itechart.project.configuration.AuthenticationSettings
-import com.itechart.project.configuration.ConfigurationTypes.{AppConfiguration, PasswordSalt, RedisConfiguration}
+import com.itechart.project.configuration.ConfigurationTypes.{AppConfiguration, PasswordSalt}
 import com.itechart.project.configuration.DatabaseSettings.{migrator, transactor}
 import com.itechart.project.configuration.MailSettings.mailer
 import com.itechart.project.mailer.MailService
@@ -41,15 +41,14 @@ import com.itechart.project.services.{
   UserService
 }
 import dev.profunktor.redis4cats.effect.MkRedis
-import dev.profunktor.redis4cats.{Redis, RedisCommands}
-import io.chrisdavenport.log4cats.Logger
 import org.http4s.HttpApp
 import org.http4s.implicits._
 import eu.timepit.refined.auto._
+import org.typelevel.log4cats.Logger
 
 object AppContext {
 
-  def setUp[F[_]: ContextShift: Async: Logger](configuration: AppConfiguration): Resource[F, HttpApp[F]] = {
+  def setUp[F[_]: Async: Logger: MkRedis](configuration: AppConfiguration): Resource[F, HttpApp[F]] = {
     for {
       tx <- transactor[F](configuration.db)
 
@@ -57,9 +56,7 @@ object AppContext {
       _        <- Resource.eval(migrator.migrate())
 
       mailer <- Resource.eval(mailer(configuration.mail))
-
-      blocker <- Blocker[F]
-      crypto  <- Resource.eval(Crypto.of[F](PasswordSalt("06!grsnxXG0d*Pj496p6fuA*o")))
+      crypto <- Resource.eval(Crypto.of[F](PasswordSalt("06!grsnxXG0d*Pj496p6fuA*o")))
 
       authentication <- Resource.eval(AuthenticationSettings.of[F])
       redisResource  <- Resource.eval(RedisResource.make[F](authentication))
@@ -96,7 +93,7 @@ object AppContext {
       categoryRoutes   = CategoryRoutes.routes[F](categoryService)
       supplierRoutes   = SupplierRoutes.routes[F](supplierService)
       itemRoutes       = ItemRoutes.routes[F](itemService)
-      attachmentRoutes = AttachmentRoutes.routes[F](attachmentService, blocker)
+      attachmentRoutes = AttachmentRoutes.routes[F](attachmentService)
       cartRoutes       = CartRoutes.routes[F](cartService)
       orderRoutes      = OrderRoutes.routes[F](orderService)
       userRoutes       = UserRoutes.routes[F](userService)

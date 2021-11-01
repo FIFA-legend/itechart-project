@@ -1,13 +1,12 @@
 package com.itechart.project.resources
 
-import cats.effect.Concurrent
-import cats.effect.kernel.Resource
-import cats.implicits._
+import cats.effect.{Concurrent, Resource}
+import cats.syntax.all._
 import com.itechart.project.configuration.ConfigurationTypes.{AuthenticationConfiguration, RedisConfiguration}
 import dev.profunktor.redis4cats.{Redis, RedisCommands}
 import dev.profunktor.redis4cats.effect.MkRedis
-import io.chrisdavenport.log4cats.Logger
 import eu.timepit.refined.auto._
+import org.typelevel.log4cats.Logger
 
 sealed abstract class RedisResource[F[_]](
   val redis: RedisCommands[F, String, String]

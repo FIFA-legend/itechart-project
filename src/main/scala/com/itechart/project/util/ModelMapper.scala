@@ -6,21 +6,21 @@ import com.itechart.project.domain.group.{DatabaseGroup, GroupId}
 import com.itechart.project.domain.item.{DatabaseItem, DatabaseItemFilter, ItemId}
 import com.itechart.project.domain.order.{DatabaseOrder, OrderId}
 import com.itechart.project.domain.supplier.{DatabaseSupplier, SupplierId}
-import com.itechart.project.domain.user.{DatabaseUser, EncryptedPassword, Role, UserId, Username}
-import com.itechart.project.dto.auth.{AuthUser, AuthUserWithPassword}
+import com.itechart.project.domain.user._
+import com.itechart.project.dto.auth.AuthUserWithPassword
 import com.itechart.project.dto.cart.{CartDto, SimpleItemDto, SingleCartDto}
 import com.itechart.project.dto.category.CategoryDto
 import com.itechart.project.dto.group.{GroupDto, SimpleUserDto}
 import com.itechart.project.dto.item.{AttachmentIdDto, FilterItemDto, ItemDto}
 import com.itechart.project.dto.order.OrderDto
 import com.itechart.project.dto.supplier.SupplierDto
-import com.itechart.project.dto.user.{FullUserDto, UserDto}
+import com.itechart.project.dto.user.FullUserDto
 import eu.timepit.refined.W
-import eu.timepit.refined.predicates.all.NonEmpty
-import io.scalaland.chimney.dsl.TransformerOps
 import eu.timepit.refined.auto._
 import eu.timepit.refined.numeric.GreaterEqual
+import eu.timepit.refined.predicates.all.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
+import io.scalaland.chimney.dsl.TransformerOps
 import squants.market.{Money, USD}
 
 object ModelMapper {

@@ -5,25 +5,18 @@ import cats.implicits._
 import com.itechart.project.dto.user.UserDto
 import com.itechart.project.services.UserService
 import com.itechart.project.services.error.UserErrors.UserValidationError
-import com.itechart.project.services.error.UserErrors.UserValidationError.{
-  EmailInUse,
-  InvalidEmail,
-  InvalidPassword,
-  InvalidUsernameLength,
-  InvalidUsernameSymbols,
-  UserNotFound,
-  UsernameInUse
-}
-import io.chrisdavenport.log4cats.Logger
-import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import com.itechart.project.services.error.UserErrors.UserValidationError._
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
+import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import org.typelevel.log4cats.Logger
 
 import scala.util.Try
 
 object UserRoutes {
 
-  def routes[F[_]: Sync: Logger](userService: UserService[F]): HttpRoutes[F] = {
+  def routes[F[_]: Sync: Logger: JsonDecoder](userService: UserService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -44,7 +37,7 @@ object UserRoutes {
 
     def createUser: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "users" =>
       val res = for {
-        user    <- req.as[UserDto]
+        user    <- req.asJsonDecode[UserDto]
         created <- userService.createUser(user)
       } yield created
 
@@ -53,7 +46,7 @@ object UserRoutes {
 
     def updateUser(): HttpRoutes[F] = HttpRoutes.of[F] { case req @ PUT -> Root / "users" / LongVar(id) =>
       val res = for {
-        user    <- req.as[UserDto]
+        user    <- req.asJsonDecode[UserDto]
         updated <- userService.updateUser(id, user)
       } yield updated
 

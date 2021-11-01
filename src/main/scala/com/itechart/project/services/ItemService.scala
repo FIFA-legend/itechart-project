@@ -14,7 +14,7 @@ import com.itechart.project.repository.{
 }
 import com.itechart.project.services.error.ItemErrors.ItemValidationError
 import com.itechart.project.services.impl.ItemServiceImpl
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 trait ItemService[F[_]] {
   def findAllItems: F[List[ItemDto]]

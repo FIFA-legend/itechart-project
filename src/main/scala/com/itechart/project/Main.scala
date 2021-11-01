@@ -1,13 +1,15 @@
 package com.itechart.project
 
-import cats.effect.{ConcurrentEffect, ContextShift, ExitCode, IO, IOApp, Resource, Timer}
+import cats.effect.kernel.Async
+import cats.effect.{ExitCode, IO, IOApp, Resource}
 import com.itechart.project.configuration.ConfigurationTypes.AppConfiguration
 import com.itechart.project.context.AppContext
-import io.chrisdavenport.log4cats.{Logger, SelfAwareStructuredLogger}
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.circe.config.parser
+import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Server
-import org.http4s.server.blaze.BlazeServerBuilder
+import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.{Logger, SelfAwareStructuredLogger}
+import dev.profunktor.redis4cats.log4cats._
 
 import scala.concurrent.ExecutionContext
 
@@ -21,7 +23,7 @@ object Main extends IOApp {
       .as(ExitCode.Success)
   }
 
-  private def serverResource[F[_]: ContextShift: ConcurrentEffect: Timer: Logger]: Resource[F, Server[F]] = {
+  private def serverResource[F[_]: Async: Logger]: Resource[F, Server] = {
     for {
       configuration <- Resource.eval(parser.decodePathF[F, AppConfiguration]("app"))
       httpApp       <- AppContext.setUp[F](configuration)

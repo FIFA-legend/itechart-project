@@ -5,23 +5,18 @@ import cats.implicits._
 import com.itechart.project.dto.category.CategoryDto
 import com.itechart.project.services.CategoryService
 import com.itechart.project.services.error.CategoryErrors.CategoryValidationError
-import com.itechart.project.services.error.CategoryErrors.CategoryValidationError.{
-  CategoryInUse,
-  CategoryIsConnected,
-  CategoryNotFound,
-  InvalidCategoryName,
-  UnsupportedCategoryError
-}
-import io.chrisdavenport.log4cats.Logger
-import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import com.itechart.project.services.error.CategoryErrors.CategoryValidationError._
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
+import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import org.typelevel.log4cats.Logger
 
 import scala.util.Try
 
 object CategoryRoutes {
 
-  def routes[F[_]: Sync: Logger](categoryService: CategoryService[F]): HttpRoutes[F] = {
+  def routes[F[_]: Sync: Logger: JsonDecoder](categoryService: CategoryService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -42,7 +37,7 @@ object CategoryRoutes {
 
     def createCategory: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "categories" =>
       val res = for {
-        category <- req.as[CategoryDto]
+        category <- req.asJsonDecode[CategoryDto]
         created  <- categoryService.createCategory(category)
       } yield created
 
@@ -51,7 +46,7 @@ object CategoryRoutes {
 
     def updateCategory(): HttpRoutes[F] = HttpRoutes.of[F] { case req @ PUT -> Root / "categories" =>
       val res = for {
-        category <- req.as[CategoryDto]
+        category <- req.asJsonDecode[CategoryDto]
         updated  <- categoryService.updateCategory(category)
       } yield updated
 

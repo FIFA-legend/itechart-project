@@ -5,25 +5,18 @@ import cats.implicits._
 import com.itechart.project.dto.group.GroupDto
 import com.itechart.project.services.GroupService
 import com.itechart.project.services.error.GroupErrors.GroupValidationError
-import com.itechart.project.services.error.GroupErrors.GroupValidationError.{
-  GroupNameInUse,
-  GroupNotFound,
-  InvalidGroupName,
-  ItemIsInGroup,
-  ItemNotFound,
-  UserIsInGroup,
-  UserNotFound
-}
-import io.chrisdavenport.log4cats.Logger
-import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import com.itechart.project.services.error.GroupErrors.GroupValidationError._
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
+import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import org.typelevel.log4cats.Logger
 
 import scala.util.Try
 
 object GroupRoutes {
 
-  def routes[F[_]: Sync: Logger](groupService: GroupService[F]): HttpRoutes[F] = {
+  def routes[F[_]: Sync: Logger: JsonDecoder](groupService: GroupService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -60,7 +53,7 @@ object GroupRoutes {
 
     def createGroup: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "groups" =>
       val res = for {
-        group   <- req.as[GroupDto]
+        group   <- req.asJsonDecode[GroupDto]
         created <- groupService.createGroup(group)
       } yield created
 
@@ -69,7 +62,7 @@ object GroupRoutes {
 
     def updateGroup(): HttpRoutes[F] = HttpRoutes.of[F] { case req @ PUT -> Root / "groups" =>
       val res = for {
-        group   <- req.as[GroupDto]
+        group   <- req.asJsonDecode[GroupDto]
         updated <- groupService.updateGroup(group)
       } yield updated
 

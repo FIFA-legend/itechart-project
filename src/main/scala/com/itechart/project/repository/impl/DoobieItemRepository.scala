@@ -1,6 +1,6 @@
 package com.itechart.project.repository.impl
 
-import cats.effect.Bracket
+import cats.effect.MonadCancelThrow
 import cats.implicits._
 import com.itechart.project.domain.cart.DatabaseCart
 import com.itechart.project.domain.category.DatabaseCategory
@@ -14,7 +14,7 @@ import doobie._
 import doobie.implicits._
 import doobie.util.fragment.Fragment
 
-class DoobieItemRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transactor[F]) extends ItemRepository[F] {
+class DoobieItemRepository[F[_]: MonadCancelThrow](transactor: Transactor[F]) extends ItemRepository[F] {
   private val selectItem: Fragment = fr"SELECT * FROM items"
   private val insertItem: Fragment =
     fr"INSERT INTO items (name, description, amount, price, status, supplier_id)"

@@ -6,25 +6,19 @@ import com.itechart.project.dto.order.OrderDto
 import com.itechart.project.dto.user.FullUserDto
 import com.itechart.project.services.OrderService
 import com.itechart.project.services.error.OrderErrors.OrderValidationError
-import com.itechart.project.services.error.OrderErrors.OrderValidationError.{
-  InvalidOrderAddress,
-  InvalidOrderCart,
-  InvalidOrderStatus,
-  InvalidOrderUser,
-  OrderCartIsPartOfAnotherOrder,
-  OrderNotFound
-}
-import io.chrisdavenport.log4cats.Logger
+import com.itechart.project.services.error.OrderErrors.OrderValidationError._
 import io.circe.generic.JsonCodec
-import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
+import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import org.typelevel.log4cats.Logger
 
 import scala.util.Try
 
 object OrderRoutes {
 
-  def routes[F[_]: Sync: Logger](orderService: OrderService[F]): HttpRoutes[F] = {
+  def routes[F[_]: Sync: Logger: JsonDecoder](orderService: OrderService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -55,7 +49,7 @@ object OrderRoutes {
       @JsonCodec final case class OrderAndUser(order: OrderDto, user: FullUserDto)
 
       val res = for {
-        orderAndUser <- req.as[OrderAndUser]
+        orderAndUser <- req.asJsonDecode[OrderAndUser]
         created      <- orderService.createOrder(orderAndUser.order, orderAndUser.user)
       } yield created
 

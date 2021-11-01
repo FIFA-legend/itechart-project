@@ -4,7 +4,7 @@ import cats.ApplicativeThrow
 import cats.effect.Sync
 import cats.implicits._
 import com.itechart.project.authentication.{Crypto, JwtExpire, Token}
-import com.itechart.project.configuration.ConfigurationTypes.{AuthenticationConfiguration, ClaimContent}
+import com.itechart.project.configuration.ConfigurationTypes._
 import com.itechart.project.domain.user.{UserId, Username}
 import com.itechart.project.dto.auth.{
   AuthClientUser,

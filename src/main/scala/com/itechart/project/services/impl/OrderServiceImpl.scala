@@ -23,7 +23,7 @@ import com.itechart.project.services.error.OrderErrors.OrderValidationError.{
 import com.itechart.project.util.ModelMapper.{cartsDomainToCartDto, itemDomainToSimpleItemDto, orderDomainToDto}
 import com.itechart.project.util.RefinedConversion.validateParameter
 import eu.timepit.refined.collection.NonEmpty
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 import squants.market.{Money, USD}
 
 class OrderServiceImpl[F[_]: Sync: Logger](

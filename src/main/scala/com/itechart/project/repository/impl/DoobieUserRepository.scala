@@ -1,6 +1,6 @@
 package com.itechart.project.repository.impl
 
-import cats.effect.Bracket
+import cats.effect.MonadCancelThrow
 import cats.implicits._
 import com.itechart.project.domain.category.DatabaseCategory
 import com.itechart.project.domain.group.DatabaseGroup
@@ -13,7 +13,7 @@ import doobie.Transactor
 import doobie.implicits._
 import doobie.util.fragment.Fragment
 
-class DoobieUserRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transactor[F]) extends UserRepository[F] {
+class DoobieUserRepository[F[_]: MonadCancelThrow](transactor: Transactor[F]) extends UserRepository[F] {
   private val selectUser: Fragment = fr"SELECT * FROM users"
   private val insertUser: Fragment = fr"INSERT INTO users (username, password, email)"
   private val setUser:    Fragment = fr"UPDATE users"

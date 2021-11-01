@@ -5,23 +5,18 @@ import cats.implicits._
 import com.itechart.project.dto.supplier.SupplierDto
 import com.itechart.project.services.SupplierService
 import com.itechart.project.services.error.SupplierErrors.SupplierValidationError
-import com.itechart.project.services.error.SupplierErrors.SupplierValidationError.{
-  InvalidSupplierName,
-  SupplierInUse,
-  SupplierIsConnected,
-  SupplierNotFound,
-  UnsupportedSupplierError
-}
-import io.chrisdavenport.log4cats.Logger
-import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import com.itechart.project.services.error.SupplierErrors.SupplierValidationError._
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
+import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import org.typelevel.log4cats.Logger
 
 import scala.util.Try
 
 object SupplierRoutes {
 
-  def routes[F[_]: Sync: Logger](supplierService: SupplierService[F]): HttpRoutes[F] = {
+  def routes[F[_]: Sync: Logger: JsonDecoder](supplierService: SupplierService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -42,7 +37,7 @@ object SupplierRoutes {
 
     def createSupplier: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "suppliers" =>
       val res = for {
-        supplier <- req.as[SupplierDto]
+        supplier <- req.asJsonDecode[SupplierDto]
         created  <- supplierService.createSupplier(supplier)
       } yield created
 
@@ -51,7 +46,7 @@ object SupplierRoutes {
 
     def updateSupplier(): HttpRoutes[F] = HttpRoutes.of[F] { case req @ PUT -> Root / "suppliers" =>
       val res = for {
-        supplier <- req.as[SupplierDto]
+        supplier <- req.asJsonDecode[SupplierDto]
         updated  <- supplierService.updateSupplier(supplier)
       } yield updated
 

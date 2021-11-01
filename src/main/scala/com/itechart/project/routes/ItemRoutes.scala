@@ -6,26 +6,19 @@ import com.itechart.project.dto.item.{FilterItemDto, ItemDto}
 import com.itechart.project.dto.user.FullUserDto
 import com.itechart.project.services.ItemService
 import com.itechart.project.services.error.ItemErrors.ItemValidationError
-import com.itechart.project.services.error.ItemErrors.ItemValidationError.{
-  InvalidItemAmount,
-  InvalidItemCategory,
-  InvalidItemDescription,
-  InvalidItemName,
-  InvalidItemPrice,
-  InvalidItemSupplier,
-  ItemNotFound
-}
-import io.chrisdavenport.log4cats.Logger
+import com.itechart.project.services.error.ItemErrors.ItemValidationError._
 import io.circe.generic.JsonCodec
-import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
+import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import org.typelevel.log4cats.Logger
 
 import scala.util.Try
 
 object ItemRoutes {
 
-  def routes[F[_]: Sync: Logger](itemService: ItemService[F]): HttpRoutes[F] = {
+  def routes[F[_]: Sync: Logger: JsonDecoder](itemService: ItemService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -38,7 +31,7 @@ object ItemRoutes {
 
     def allItemsFilter: HttpRoutes[F] = HttpRoutes.of[F] { case req @ GET -> Root / "items" / "filter" =>
       for {
-        filter   <- req.as[FilterItemDto]
+        filter   <- req.asJsonDecode[FilterItemDto]
         items    <- itemService.findAllByFilter(filter)
         response <- Ok(items)
       } yield response
@@ -46,7 +39,7 @@ object ItemRoutes {
 
     def allAvailableItemsForUser: HttpRoutes[F] = HttpRoutes.of[F] { case req @ GET -> Root / "items" / "available" =>
       for {
-        user     <- req.as[FullUserDto]
+        user     <- req.asJsonDecode[FullUserDto]
         items    <- itemService.findAllByUser(user)
         response <- Ok(items)
       } yield response
@@ -57,7 +50,7 @@ object ItemRoutes {
         @JsonCodec final case class UserAndFilter(user: FullUserDto, filter: FilterItemDto)
 
         for {
-          userAndFilter <- req.as[UserAndFilter]
+          userAndFilter <- req.asJsonDecode[UserAndFilter]
           items         <- itemService.findAllByUserAndFilter(userAndFilter.user, userAndFilter.filter)
           response      <- Ok(items)
         } yield response
@@ -73,7 +66,7 @@ object ItemRoutes {
 
     def createItem: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "items" =>
       val res = for {
-        item    <- req.as[ItemDto]
+        item    <- req.asJsonDecode[ItemDto]
         created <- itemService.createItem(item)
       } yield created
 
@@ -82,7 +75,7 @@ object ItemRoutes {
 
     def updateCategory(): HttpRoutes[F] = HttpRoutes.of[F] { case req @ PUT -> Root / "items" =>
       val res = for {
-        item    <- req.as[ItemDto]
+        item    <- req.asJsonDecode[ItemDto]
         updated <- itemService.updateItem(item)
       } yield updated
 

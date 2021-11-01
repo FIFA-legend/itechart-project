@@ -1,6 +1,5 @@
 package com.itechart.project.services
 
-import cats.effect.MonadThrow
 import cats._
 import cats.syntax.all._
 import com.itechart.project.authentication.{Crypto, Token}

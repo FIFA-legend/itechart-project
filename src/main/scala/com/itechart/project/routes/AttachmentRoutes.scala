@@ -1,6 +1,6 @@
 package com.itechart.project.routes
 
-import cats.effect.{Blocker, ContextShift, Sync}
+import cats.effect.Sync
 import cats.implicits._
 import com.itechart.project.services.AttachmentService
 import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError
@@ -8,18 +8,18 @@ import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError.
   AttachmentNotFound,
   InvalidItemAttachment
 }
-import io.chrisdavenport.log4cats.Logger
+import fs2.io.file.Files
 import org.http4s.dsl.Http4sDsl
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.{EntityEncoder, HttpRoutes, Response, StaticFile}
+import org.typelevel.log4cats.Logger
 
 import scala.util.Try
 
 object AttachmentRoutes {
 
-  def routes[F[_]: Sync: ContextShift: Logger](
-    attachmentService: AttachmentService[F],
-    blocker:           Blocker
+  def routes[F[_]: Sync: Logger: Files](
+    attachmentService: AttachmentService[F]
   ): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
@@ -28,7 +28,7 @@ object AttachmentRoutes {
       for {
         file <- attachmentService.findFileById(id)
         response <- file match {
-          case Right(value) => StaticFile.fromFile(value, blocker, Some(request)).getOrElseF(NotFound())
+          case Right(value) => StaticFile.fromFile(value, Some(request)).getOrElseF(NotFound())
           case Left(value)  => NotFound(value.message)
         }
       } yield response

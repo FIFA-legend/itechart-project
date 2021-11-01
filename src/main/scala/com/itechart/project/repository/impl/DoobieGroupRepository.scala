@@ -1,6 +1,6 @@
 package com.itechart.project.repository.impl
 
-import cats.effect.Bracket
+import cats.effect.MonadCancelThrow
 import cats.implicits._
 import com.itechart.project.domain.group.{DatabaseGroup, GroupId, GroupName}
 import com.itechart.project.domain.item.DatabaseItem
@@ -11,7 +11,7 @@ import doobie.Transactor
 import doobie.implicits._
 import doobie.util.fragment.Fragment
 
-class DoobieGroupRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transactor[F]) extends GroupRepository[F] {
+class DoobieGroupRepository[F[_]: MonadCancelThrow](transactor: Transactor[F]) extends GroupRepository[F] {
   private val selectGroup: Fragment = fr"SELECT * FROM user_groups"
   private val insertGroup: Fragment = fr"INSERT INTO user_groups (name)"
   private val setGroup:    Fragment = fr"UPDATE user_groups"

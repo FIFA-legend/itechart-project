@@ -6,7 +6,7 @@ import com.itechart.project.dto.user.FullUserDto
 import com.itechart.project.repository.{CartRepository, GroupRepository, ItemRepository, UserRepository}
 import com.itechart.project.services.error.CartErrors.CartValidationError
 import com.itechart.project.services.impl.CartServiceImpl
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 trait CartService[F[_]] {
   def findByUser(user: FullUserDto): F[Either[CartValidationError, CartDto]]

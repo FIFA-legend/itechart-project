@@ -41,7 +41,7 @@ import com.itechart.project.util.ModelMapper.{
 }
 import com.itechart.project.util.RefinedConversion.validateParameter
 import eu.timepit.refined.collection.NonEmpty
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 import squants.market.{Money, USD}
 
 import java.io.File

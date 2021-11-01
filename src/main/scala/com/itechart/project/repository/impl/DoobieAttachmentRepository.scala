@@ -1,6 +1,6 @@
 package com.itechart.project.repository.impl
 
-import cats.effect.Bracket
+import cats.effect.MonadCancelThrow
 import com.itechart.project.domain.attachment.{AttachmentId, DatabaseAttachment}
 import com.itechart.project.domain.item.DatabaseItem
 import com.itechart.project.repository.AttachmentRepository
@@ -9,8 +9,7 @@ import doobie.Transactor
 import doobie.implicits._
 import doobie.util.fragment.Fragment
 
-class DoobieAttachmentRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transactor[F])
-  extends AttachmentRepository[F] {
+class DoobieAttachmentRepository[F[_]: MonadCancelThrow](transactor: Transactor[F]) extends AttachmentRepository[F] {
   private val selectAttachment: Fragment = fr"SELECT * FROM attachments_to_items"
   private val insertAttachment: Fragment = fr"INSERT INTO attachments_to_items (link, item_id)"
   private val deleteAttachment: Fragment = fr"DELETE FROM attachments_to_items"
