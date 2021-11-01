@@ -30,23 +30,31 @@ object AuthenticationSettings {
   implicit val accessTokenShow:  Show[JwtAccessTokenKeyConfiguration] = Show.show(_.secret.value)
   implicit val saltShow:         Show[PasswordSalt]                   = Show.show(_.secret.value)
 
-  /*def of[F[_]: Applicative]: F[AuthenticationConfiguration] = {
+  def of[F[_]: Applicative]: F[AuthenticationConfiguration] = {
     AuthenticationConfiguration(
       ManagerJwtConfiguration(
-        Secret(JwtSecretKeyConfiguration("a")),
-        Secret(JwtClaimConfiguration("")),
-        Secret(ManagerUserTokenConfiguration(""))
+        Secret(JwtSecretKeyConfiguration("-*5h0pp1ng_k4rt*-")),
+        Secret(JwtClaimConfiguration("{\"uuid\": \"004b4457-71c3-4439-a1b2-03820263b59c\"}")),
+        Secret(
+          ManagerUserTokenConfiguration(
+            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1dWlkIjogIjAwNGI0NDU3LTcxYzMtNDQzOS1hMWIyLTAzODIwMjYzYjU5YyJ9.L97BnPScSAKY-BLkYu8G_n8h1U4LDOURUen14O22hD4"
+          )
+        )
       ),
       CourierJwtConfiguration(
-        Secret(JwtSecretKeyConfiguration("")),
-        Secret(JwtClaimConfiguration("")),
-        Secret(CourierUserTokenConfiguration(""))
+        Secret(JwtSecretKeyConfiguration("+*5h0pp1ng_k4rt*+")),
+        Secret(JwtClaimConfiguration("{\"uuid\": \"05082001-71c3-4439-a1b2-03820263b59c\"}")),
+        Secret(
+          CourierUserTokenConfiguration(
+            "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1dWlkIjogIjAwNGI0NDU3LTcxYzMtNDQzOS1hMWIyLTAzODIwMjYzYjU5YyJ9.L97BnPScSAKY-BLkYu8G_n8h1U4LDOURUen05082001"
+          )
+        )
       ),
-      Secret(JwtAccessTokenKeyConfiguration("")),
-      Secret(PasswordSalt("")),
+      Secret(JwtAccessTokenKeyConfiguration("5h0pp1ng_k4rt")),
+      Secret(PasswordSalt("06!grsnxXG0d*Pj496p6fuA*o")),
       TokenExpiration(30.minutes),
       RedisConfiguration(RedisURI("redis://localhost"))
     ).pure[F]
-  }*/
+  }
 
 }

@@ -87,8 +87,10 @@ libraryDependencies ++= Seq(
   "is.cir"                   %% "ciris-refined"                 % cirisVersion,
   "dev.profunktor"           %% "redis4cats-effects"            % "1.0.0",
   "io.scalaland"             %% "chimney"                       % "0.6.1",
-  "tf.tofu"                  %% s"derevo-core"                  % "0.12.6",
-  "com.github.daddykotex"    %% "courier"                       % "3.0.1"
+  "tf.tofu"                  %% "derevo-core"                   % "0.12.6",
+  "com.github.daddykotex"    %% "courier"                       % "3.0.1",
+  "dev.profunktor"           %% "redis4cats-log4cats"           % "1.0.0",
+  "org.http4s"               %% "http4s-ember-server"           % http4sVersion
 )
 
 addCompilerPlugin(

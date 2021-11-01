@@ -19,6 +19,7 @@ import com.itechart.project.repository.{
   SupplierRepository,
   UserRepository
 }
+import com.itechart.project.resources.RedisResource
 import com.itechart.project.routes.{
   AttachmentRoutes,
   CartRoutes,
@@ -58,7 +59,11 @@ object AppContext {
       mailer <- Resource.eval(mailer(configuration.mail))
 
       blocker <- Blocker[F]
-      crypto  <- Resource.eval(Crypto.of[F](PasswordSalt("Nikita")))
+      crypto  <- Resource.eval(Crypto.of[F](PasswordSalt("06!grsnxXG0d*Pj496p6fuA*o")))
+
+      authentication <- Resource.eval(AuthenticationSettings.of[F])
+      redisResource  <- Resource.eval(RedisResource.make[F](authentication))
+      security       <- Resource.eval(Security.of[F](authentication, tx, redisResource.redis))
 
       categoryRepository   = CategoryRepository.of[F](tx)
       supplierRepository   = SupplierRepository.of[F](tx)
