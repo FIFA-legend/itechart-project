@@ -178,7 +178,7 @@ object GroupRoutes {
     ): F[Response[F]] =
       result
         .flatMap {
-          case Left(error) => groupErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
+          case Left(error) => groupErrorToHttpResponse(error) <* Logger[F].warn(error.message)
           case Right(dto)  => Ok(dto)
         }
         .handleErrorWith { ex =>

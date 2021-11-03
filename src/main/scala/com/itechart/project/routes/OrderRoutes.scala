@@ -120,7 +120,7 @@ object OrderRoutes {
     ): F[Response[F]] =
       result
         .flatMap {
-          case Left(error) => orderErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
+          case Left(error) => orderErrorToHttpResponse(error) <* Logger[F].warn(error.message)
           case Right(dto)  => Ok(dto)
         }
         .handleErrorWith { ex =>

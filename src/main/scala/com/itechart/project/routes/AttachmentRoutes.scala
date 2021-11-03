@@ -88,7 +88,7 @@ object AttachmentRoutes {
 
     result
       .flatMap {
-        case Left(error) => attachmentErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
+        case Left(error) => attachmentErrorToHttpResponse(error) <* Logger[F].warn(error.message)
         case Right(dto)  => Ok(dto)
       }
       .handleErrorWith { ex =>

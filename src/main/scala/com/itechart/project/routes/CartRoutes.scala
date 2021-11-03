@@ -101,7 +101,7 @@ object CartRoutes {
     ): F[Response[F]] =
       result
         .flatMap {
-          case Left(error) => cartErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
+          case Left(error) => cartErrorToHttpResponse(error) <* Logger[F].warn(error.message)
           case Right(dto)  => Ok(dto)
         }
         .handleErrorWith { ex =>

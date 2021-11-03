@@ -154,7 +154,7 @@ object ItemRoutes {
 
     result
       .flatMap {
-        case Left(error) => itemErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
+        case Left(error) => itemErrorToHttpResponse(error) <* Logger[F].warn(error.message)
         case Right(dto)  => Ok(dto)
       }
       .handleErrorWith { ex =>

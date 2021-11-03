@@ -117,7 +117,7 @@ object SupplierRoutes {
 
     result
       .flatMap {
-        case Left(error) => supplierErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
+        case Left(error) => supplierErrorToHttpResponse(error) <* Logger[F].warn(error.message)
         case Right(dto)  => Ok(dto)
       }
       .handleErrorWith { ex =>

@@ -158,7 +158,7 @@ object UserRoutes {
 
     result
       .flatMap {
-        case Left(error) => userErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
+        case Left(error) => userErrorToHttpResponse(error) <* Logger[F].warn(error.message)
         case Right(dto)  => Ok(dto)
       }
       .handleErrorWith { ex =>
