@@ -42,33 +42,15 @@ object ConfigurationTypes {
   )
 
   final case class AuthenticationConfiguration(
-    managerJwtConfiguration: ManagerJwtConfiguration,
-    courierJwtConfiguration: CourierJwtConfiguration,
-    tokenConfiguration:      Secret[JwtAccessTokenKeyConfiguration],
-    salt:                    Secret[PasswordSalt],
-    tokenExpiration:         TokenExpiration,
-    redisConfiguration:      RedisConfiguration
-  )
-
-  final case class ManagerJwtConfiguration(
-    secretKey:    Secret[JwtSecretKeyConfiguration],
-    claimString:  Secret[JwtClaimConfiguration],
-    managerToken: Secret[ManagerUserTokenConfiguration]
-  )
-
-  final case class CourierJwtConfiguration(
-    secretKey:    Secret[JwtSecretKeyConfiguration],
-    claimString:  Secret[JwtClaimConfiguration],
-    courierToken: Secret[CourierUserTokenConfiguration]
+    tokenConfiguration: Secret[JwtAccessTokenKeyConfiguration],
+    salt:               Secret[PasswordSalt],
+    tokenExpiration:    TokenExpiration,
+    redisConfiguration: RedisConfiguration
   )
 
   final case class RedisConfiguration(uri: RedisURI)
 
   final case class RedisURI(value: NonEmptyString)
-
-  final case class ManagerUserTokenConfiguration(secret: NonEmptyString)
-
-  final case class CourierUserTokenConfiguration(secret: NonEmptyString)
 
   final case class JwtSecretKeyConfiguration(secret: NonEmptyString)
 

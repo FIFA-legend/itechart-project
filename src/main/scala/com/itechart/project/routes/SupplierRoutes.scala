@@ -2,14 +2,17 @@ package com.itechart.project.routes
 
 import cats.effect.Sync
 import cats.implicits._
+import com.itechart.project.domain.user.Role
+import com.itechart.project.dto.auth.LoggedInUser
 import com.itechart.project.dto.supplier.SupplierDto
+import com.itechart.project.routes.access.AccessChecker.isResourceAvailable
 import com.itechart.project.services.SupplierService
 import com.itechart.project.services.error.SupplierErrors.SupplierValidationError
 import com.itechart.project.services.error.SupplierErrors.SupplierValidationError._
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import org.http4s.{AuthedRoutes, EntityEncoder, HttpRoutes, Response}
 import org.typelevel.log4cats.Logger
 
 import scala.util.Try
@@ -35,63 +38,91 @@ object SupplierRoutes {
       marshalResponse(res)
     }
 
-    def createSupplier: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "suppliers" =>
-      val res = for {
-        supplier <- req.asJsonDecode[SupplierDto]
-        created  <- supplierService.createSupplier(supplier)
-      } yield created
-
-      marshalResponse(res)
-    }
-
-    def updateSupplier(): HttpRoutes[F] = HttpRoutes.of[F] { case req @ PUT -> Root / "suppliers" =>
-      val res = for {
-        supplier <- req.asJsonDecode[SupplierDto]
-        updated  <- supplierService.updateSupplier(supplier)
-      } yield updated
-
-      marshalResponse(res)
-    }
-
-    def deleteSupplier(): HttpRoutes[F] = HttpRoutes.of[F] { case DELETE -> Root / "suppliers" / LongVar(id) =>
-      val res = for {
-        deleted <- supplierService.deleteSupplier(id)
-      } yield deleted
-
-      marshalResponse(res)
-    }
-
     object LongVar {
       def unapply(value: String): Option[Long] = Try(value.toLong).toOption
     }
 
-    def supplierErrorToHttpResponse(error: SupplierValidationError): F[Response[F]] = {
-      error match {
-        case e: SupplierNotFound    => NotFound(e.message)
-        case e: SupplierInUse       => Conflict(e.message)
-        case e: SupplierIsConnected => Conflict(e.message)
-        case e @ InvalidSupplierName => BadRequest(e.message)
-        case e: UnsupportedSupplierError => BadRequest(e.message)
+    allSuppliers <+> getSupplier
+  }
 
-        case e => BadRequest(e.message)
-      }
+  def securedRoutes[F[_]: Sync: Logger: JsonDecoder](
+    supplierService: SupplierService[F]
+  ): AuthedRoutes[LoggedInUser, F] = {
+    val dsl = new Http4sDsl[F] {}
+    import dsl._
+
+    def createSupplier: AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of {
+      case request @ POST -> Root / "suppliers" as user =>
+        if (!isResourceAvailable(user.value.role, List(Role.Manager))) Forbidden()
+        else {
+          val res = for {
+            supplier <- request.req.asJsonDecode[SupplierDto]
+            created  <- supplierService.createSupplier(supplier)
+          } yield created
+
+          marshalResponse(res)
+        }
     }
 
-    def marshalResponse[T](
-      result: F[Either[SupplierValidationError, T]]
-    )(
-      implicit E: EntityEncoder[F, T]
-    ): F[Response[F]] =
-      result
-        .flatMap {
-          case Left(error) => supplierErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
-          case Right(dto)  => Ok(dto)
-        }
-        .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
-        }
+    def updateSupplier(): AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of {
+      case request @ PUT -> Root / "suppliers" as user =>
+        if (!isResourceAvailable(user.value.role, List(Role.Manager))) Forbidden()
+        else {
+          val res = for {
+            supplier <- request.req.asJsonDecode[SupplierDto]
+            updated  <- supplierService.updateSupplier(supplier)
+          } yield updated
 
-    allSuppliers <+> getSupplier <+> updateSupplier() <+> createSupplier <+> deleteSupplier()
+          marshalResponse(res)
+        }
+    }
+
+    def deleteSupplier(): AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of {
+      case DELETE -> Root / "suppliers" / LongVar(id) as user =>
+        if (!isResourceAvailable(user.value.role, List(Role.Manager))) Forbidden()
+        else {
+          val res = for {
+            deleted <- supplierService.deleteSupplier(id)
+          } yield deleted
+
+          marshalResponse(res)
+        }
+    }
+
+    updateSupplier() <+> createSupplier <+> deleteSupplier()
+  }
+
+  private def supplierErrorToHttpResponse[F[_]: Sync: Logger](error: SupplierValidationError): F[Response[F]] = {
+    val dsl = new Http4sDsl[F] {}
+    import dsl._
+
+    error match {
+      case e: SupplierNotFound    => NotFound(e.message)
+      case e: SupplierInUse       => Conflict(e.message)
+      case e: SupplierIsConnected => Conflict(e.message)
+      case e @ InvalidSupplierName => BadRequest(e.message)
+      case e: UnsupportedSupplierError => BadRequest(e.message)
+
+      case e => BadRequest(e.message)
+    }
+  }
+
+  private def marshalResponse[F[_]: Sync: Logger, T](
+    result: F[Either[SupplierValidationError, T]]
+  )(
+    implicit E: EntityEncoder[F, T]
+  ): F[Response[F]] = {
+    val dsl = new Http4sDsl[F] {}
+    import dsl._
+
+    result
+      .flatMap {
+        case Left(error) => supplierErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
+        case Right(dto)  => Ok(dto)
+      }
+      .handleErrorWith { ex =>
+        InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
+      }
   }
 
 }

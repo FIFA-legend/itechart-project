@@ -158,6 +158,7 @@ object ModelMapper {
     user
       .into[AuthUser]
       .withFieldConst(_.id, UUID.randomUUID())
+      .withFieldConst(_.longId, user.id.value)
       .withFieldComputed(_.username, _.username)
       .transform
   }

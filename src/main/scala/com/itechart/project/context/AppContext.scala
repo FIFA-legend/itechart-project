@@ -7,7 +7,7 @@ import com.itechart.project.configuration.AuthenticationSettings
 import com.itechart.project.configuration.ConfigurationTypes.AppConfiguration
 import com.itechart.project.configuration.DatabaseSettings.{migrator, transactor}
 import com.itechart.project.configuration.MailSettings.mailer
-import com.itechart.project.dto.auth.{AuthClientUser, AuthCourierUser, AuthManagerUser}
+import com.itechart.project.dto.auth.LoggedInUser
 import com.itechart.project.mailer.MailService
 import com.itechart.project.modules.Security
 import com.itechart.project.repository._
@@ -49,8 +49,7 @@ object AppContext {
       userRepository       = UserRepository.of[F](tx)
       orderRepository      = OrderRepository.of[F](tx)
 
-      auth = Auth.of(authentication.tokenExpiration, token, userRepository, redisResource.redis, crypto)
-
+      authService     = Auth.of(authentication.tokenExpiration, token, userRepository, redisResource.redis, crypto)
       mailService     = MailService.of(mailer, configuration.mail)
       categoryService = CategoryService.of[F](categoryRepository)
       supplierService = SupplierService.of[F](supplierRepository)
@@ -70,28 +69,34 @@ object AppContext {
       userService       = UserService.of[F](userRepository, supplierRepository, categoryRepository, crypto)
       groupService      = GroupService.of[F](groupRepository, userRepository, itemRepository)
 
-      usersMiddleware =
-        JwtAuthMiddleware[F, AuthClientUser](security.clientJwtAuth.value, security.clientAuth.findUser)
-      courierMiddleware =
-        JwtAuthMiddleware[F, AuthCourierUser](security.courierJwtAuth.value, security.courierAuth.findUser)
-      managerMiddleware =
-        JwtAuthMiddleware[F, AuthManagerUser](security.managerJwtAuth.value, security.managerAuth.findUser)
+      userMiddleware = JwtAuthMiddleware[F, LoggedInUser](security.userJwtAuth.value, security.userAuth.findUser)
 
       categoryRoutes   = CategoryRoutes.routes[F](categoryService)
       supplierRoutes   = SupplierRoutes.routes[F](supplierService)
       itemRoutes       = ItemRoutes.routes[F](itemService)
       attachmentRoutes = AttachmentRoutes.routes[F](attachmentService)
-      cartRoutes       = CartRoutes.routes[F](cartService)
-      orderRoutes      = OrderRoutes.routes[F](orderService)
       userRoutes       = UserRoutes.routes[F](userService)
-      groupRoutes      = GroupRoutes.routes[F](groupService)
-      loginRoute       = LoginRoute.routes[F](auth, usersMiddleware)
-    } yield {
-      (categoryRoutes <+> supplierRoutes <+> itemRoutes
-        <+> attachmentRoutes <+> cartRoutes <+> orderRoutes
-        <+> userRoutes <+> groupRoutes <+> loginRoute).orNotFound
-    }
+      loginRoutes      = LoginRoutes.routes[F](authService)
 
+      securedCategoryRoutes   = CategoryRoutes.securedRoutes[F](categoryService)
+      securedSupplierRoutes   = SupplierRoutes.securedRoutes[F](supplierService)
+      securedItemRoutes       = ItemRoutes.securedRoutes[F](itemService)
+      securedAttachmentRoutes = AttachmentRoutes.securedRoutes[F](attachmentService)
+      securedCartRoutes       = CartRoutes.securedRoutes[F](cartService)
+      securedOrderRoutes      = OrderRoutes.securedRoutes[F](orderService)
+      securedUserRoutes       = UserRoutes.securedRoutes[F](userService)
+      securedGroupRoutes      = GroupRoutes.securedRoutes[F](groupService)
+      securedLoginRoutes      = LoginRoutes.securedRoutes[F](authService)
+
+      openRoutes = categoryRoutes <+> supplierRoutes <+> itemRoutes <+>
+        attachmentRoutes <+> userRoutes <+> loginRoutes
+
+      securedRoutes = userMiddleware(
+        securedCategoryRoutes <+> securedSupplierRoutes <+> securedItemRoutes <+>
+          securedAttachmentRoutes <+> securedCartRoutes <+> securedOrderRoutes <+>
+          securedUserRoutes <+> securedGroupRoutes <+> securedLoginRoutes
+      )
+    } yield (openRoutes <+> securedRoutes).orNotFound
   }
 
 }

@@ -16,12 +16,12 @@ object Token {
   def of[F[_]: GeneratorUUID: Monad](
     jwtExpire:     JwtExpire[F],
     configuration: JwtAccessTokenKeyConfiguration,
-    token:         TokenExpiration
+    expiration:    TokenExpiration
   ): Token[F] = new Token[F] {
     override def create: F[JwtToken] = {
       for {
         uuid     <- GeneratorUUID[F].make
-        claim    <- jwtExpire.expiresIn(JwtClaim(uuid.asJson.noSpaces), token)
+        claim    <- jwtExpire.expiresIn(JwtClaim(uuid.asJson.noSpaces), expiration)
         secretKey = JwtSecretKey(configuration.secret.value)
         token    <- jwtEncode[F](claim, secretKey, JwtAlgorithm.HS256)
       } yield token

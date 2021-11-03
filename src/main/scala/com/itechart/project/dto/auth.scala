@@ -1,6 +1,6 @@
 package com.itechart.project.dto
 
-import com.itechart.project.domain.user.{EncryptedPassword, Password, UserId, Username}
+import com.itechart.project.domain.user.{EncryptedPassword, Role, UserId, Username}
 import dev.profunktor.auth.jwt.JwtSymmetricAuth
 import io.circe.generic.JsonCodec
 
@@ -10,11 +10,9 @@ object auth {
 
   @JsonCodec final case class LoginUser(username: String, password: String)
 
-  final case class ManagerJwtAuth(value: JwtSymmetricAuth)
-  final case class CourierJwtAuth(value: JwtSymmetricAuth)
-  final case class ClientJwtAuth(value: JwtSymmetricAuth)
+  final case class UserJwtAuth(value: JwtSymmetricAuth)
 
-  @JsonCodec final case class AuthUser(id: UUID, username: Username)
+  @JsonCodec final case class AuthUser(id: UUID, longId: Long, username: Username, role: Role)
 
   @JsonCodec final case class AuthUserWithPassword(
     id:       UserId,
@@ -23,8 +21,6 @@ object auth {
     email:    String
   )
 
-  @JsonCodec final case class AuthManagerUser(value: AuthUser)
-  @JsonCodec final case class AuthCourierUser(value: AuthUser)
-  @JsonCodec final case class AuthClientUser(value: AuthUser)
+  @JsonCodec final case class LoggedInUser(value: AuthUser)
 
 }
