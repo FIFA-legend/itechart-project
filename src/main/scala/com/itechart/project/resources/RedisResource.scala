@@ -16,7 +16,7 @@ object RedisResource {
 
   def make[F[_]: Concurrent: Logger: MkRedis](
     cfg: AuthenticationConfiguration
-  ): F[RedisResource[F]] = {
+  ): Resource[F, RedisResource[F]] = {
 
     def checkRedisConnection(
       redis: RedisCommands[F, String, String]
@@ -30,7 +30,7 @@ object RedisResource {
     def mkRedisResource(c: RedisConfiguration): Resource[F, RedisCommands[F, String, String]] =
       Redis[F].utf8(c.uri.value).evalTap(checkRedisConnection)
 
-    mkRedisResource(cfg.redisConfiguration).use(res => new RedisResource[F](res) {}.pure[F])
+    mkRedisResource(cfg.redisConfiguration).map(res => new RedisResource[F](res) {})
   }
 
 }

@@ -8,7 +8,7 @@ import io.circe.generic.JsonCodec
 
 object user {
 
-  @JsonCodec case class UserId(value: Long)
+  @JsonCodec final case class UserId(value: Long)
 
   @JsonCodec final case class Username(value: String)
 

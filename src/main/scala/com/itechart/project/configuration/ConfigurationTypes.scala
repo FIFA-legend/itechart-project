@@ -5,6 +5,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.generic.JsonCodec
 
+import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 
 object ConfigurationTypes {
@@ -79,11 +80,12 @@ object ConfigurationTypes {
 
   final case class TokenExpiration(value: FiniteDuration)
 
-  final case class ClaimContent(id: Long)
+  @JsonCodec
+  final case class ClaimContent(uuid: UUID)
 
   object ClaimContent {
     implicit val jsonDecoder: Decoder[ClaimContent] =
-      Decoder.forProduct1("id")(ClaimContent.apply)
+      Decoder.forProduct1("uuid")(ClaimContent.apply)
   }
 
 }

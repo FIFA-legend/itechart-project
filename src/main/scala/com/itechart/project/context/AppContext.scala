@@ -2,48 +2,22 @@ package com.itechart.project.context
 
 import cats.effect.{Async, Resource}
 import cats.implicits._
-import com.itechart.project.authentication.Crypto
+import com.itechart.project.authentication.{Crypto, JwtExpire, Token}
 import com.itechart.project.configuration.AuthenticationSettings
-import com.itechart.project.configuration.ConfigurationTypes.{AppConfiguration, PasswordSalt}
+import com.itechart.project.configuration.ConfigurationTypes.AppConfiguration
 import com.itechart.project.configuration.DatabaseSettings.{migrator, transactor}
 import com.itechart.project.configuration.MailSettings.mailer
+import com.itechart.project.dto.auth.{AuthClientUser, AuthCourierUser, AuthManagerUser}
 import com.itechart.project.mailer.MailService
 import com.itechart.project.modules.Security
-import com.itechart.project.repository.{
-  AttachmentRepository,
-  CartRepository,
-  CategoryRepository,
-  GroupRepository,
-  ItemRepository,
-  OrderRepository,
-  SupplierRepository,
-  UserRepository
-}
+import com.itechart.project.repository._
 import com.itechart.project.resources.RedisResource
-import com.itechart.project.routes.{
-  AttachmentRoutes,
-  CartRoutes,
-  CategoryRoutes,
-  GroupRoutes,
-  ItemRoutes,
-  OrderRoutes,
-  SupplierRoutes,
-  UserRoutes
-}
-import com.itechart.project.services.{
-  AttachmentService,
-  CartService,
-  CategoryService,
-  GroupService,
-  ItemService,
-  OrderService,
-  SupplierService,
-  UserService
-}
+import com.itechart.project.routes._
+import com.itechart.project.services._
+import dev.profunktor.auth.JwtAuthMiddleware
 import dev.profunktor.redis4cats.effect.MkRedis
 import org.http4s.HttpApp
 import org.http4s.implicits._
-import eu.timepit.refined.auto._
 import org.typelevel.log4cats.Logger
 
 object AppContext {
@@ -56,11 +30,15 @@ object AppContext {
       _        <- Resource.eval(migrator.migrate())
 
       mailer <- Resource.eval(mailer(configuration.mail))
-      crypto <- Resource.eval(Crypto.of[F](PasswordSalt("06!grsnxXG0d*Pj496p6fuA*o")))
 
       authentication <- Resource.eval(AuthenticationSettings.of[F])
-      redisResource  <- Resource.eval(RedisResource.make[F](authentication))
-      security       <- Resource.eval(Security.of[F](authentication, tx, redisResource.redis))
+      crypto         <- Resource.eval(Crypto.of[F](authentication.salt.value))
+      redisResource  <- RedisResource.make[F](authentication)
+      jwtExpire      <- Resource.eval(JwtExpire.of[F])
+      token <- Resource.eval(
+        Token.of[F](jwtExpire, authentication.tokenConfiguration.value, authentication.tokenExpiration).pure[F]
+      )
+      security <- Resource.eval(Security.of[F](authentication, tx, redisResource.redis))
 
       categoryRepository   = CategoryRepository.of[F](tx)
       supplierRepository   = SupplierRepository.of[F](tx)
@@ -70,6 +48,8 @@ object AppContext {
       cartRepository       = CartRepository.of[F](tx)
       userRepository       = UserRepository.of[F](tx)
       orderRepository      = OrderRepository.of[F](tx)
+
+      auth = Auth.of(authentication.tokenExpiration, token, userRepository, redisResource.redis, crypto)
 
       mailService     = MailService.of(mailer, configuration.mail)
       categoryService = CategoryService.of[F](categoryRepository)
@@ -90,6 +70,13 @@ object AppContext {
       userService       = UserService.of[F](userRepository, supplierRepository, categoryRepository, crypto)
       groupService      = GroupService.of[F](groupRepository, userRepository, itemRepository)
 
+      usersMiddleware =
+        JwtAuthMiddleware[F, AuthClientUser](security.clientJwtAuth.value, security.clientAuth.findUser)
+      courierMiddleware =
+        JwtAuthMiddleware[F, AuthCourierUser](security.courierJwtAuth.value, security.courierAuth.findUser)
+      managerMiddleware =
+        JwtAuthMiddleware[F, AuthManagerUser](security.managerJwtAuth.value, security.managerAuth.findUser)
+
       categoryRoutes   = CategoryRoutes.routes[F](categoryService)
       supplierRoutes   = SupplierRoutes.routes[F](supplierService)
       itemRoutes       = ItemRoutes.routes[F](itemService)
@@ -98,9 +85,11 @@ object AppContext {
       orderRoutes      = OrderRoutes.routes[F](orderService)
       userRoutes       = UserRoutes.routes[F](userService)
       groupRoutes      = GroupRoutes.routes[F](groupService)
+      loginRoute       = LoginRoute.routes[F](auth, usersMiddleware)
     } yield {
       (categoryRoutes <+> supplierRoutes <+> itemRoutes
-        <+> attachmentRoutes <+> cartRoutes <+> orderRoutes <+> userRoutes <+> groupRoutes).orNotFound
+        <+> attachmentRoutes <+> cartRoutes <+> orderRoutes
+        <+> userRoutes <+> groupRoutes <+> loginRoute).orNotFound
     }
 
   }

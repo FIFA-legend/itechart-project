@@ -5,6 +5,7 @@ import cats.effect.Sync
 import cats.implicits._
 import com.itechart.project.authentication.{Crypto, JwtExpire, Token}
 import com.itechart.project.configuration.ConfigurationTypes._
+import com.itechart.project.configuration.ConfigurationTypes.ClaimContent.jsonDecoder
 import com.itechart.project.domain.user.{UserId, Username}
 import com.itechart.project.dto.auth.{
   AuthClientUser,
@@ -68,8 +69,8 @@ object Security {
       managerContent <- ApplicativeThrow[F].fromEither(jsonDecode[ClaimContent](managerClaim.content))
       courierContent <- ApplicativeThrow[F].fromEither(jsonDecode[ClaimContent](courierClaim.content))
 
-      managerUser = AuthManagerUser(AuthUser(UserId(managerContent.id), Username("admin")))
-      courierUser = AuthCourierUser(AuthUser(UserId(courierContent.id), Username("courier")))
+      managerUser = AuthManagerUser(AuthUser(managerContent.uuid, Username("admin")))
+      courierUser = AuthCourierUser(AuthUser(courierContent.uuid, Username("courier")))
 
       tokens <- JwtExpire
         .of[F]

@@ -7,7 +7,7 @@ import com.itechart.project.domain.item.{DatabaseItem, DatabaseItemFilter, ItemI
 import com.itechart.project.domain.order.{DatabaseOrder, OrderId}
 import com.itechart.project.domain.supplier.{DatabaseSupplier, SupplierId}
 import com.itechart.project.domain.user._
-import com.itechart.project.dto.auth.AuthUserWithPassword
+import com.itechart.project.dto.auth.{AuthUser, AuthUserWithPassword}
 import com.itechart.project.dto.cart.{CartDto, SimpleItemDto, SingleCartDto}
 import com.itechart.project.dto.category.CategoryDto
 import com.itechart.project.dto.group.{GroupDto, SimpleUserDto}
@@ -22,6 +22,8 @@ import eu.timepit.refined.predicates.all.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
 import io.scalaland.chimney.dsl.TransformerOps
 import squants.market.{Money, USD}
+
+import java.util.UUID
 
 object ModelMapper {
 
@@ -149,6 +151,14 @@ object ModelMapper {
       .withFieldComputed(_.email, _.email.value)
       .withFieldConst(_.subscribedSuppliers, suppliers)
       .withFieldConst(_.subscribedCategories, categories)
+      .transform
+  }
+
+  def userDomainToAuthUserDto(user: DatabaseUser): AuthUser = {
+    user
+      .into[AuthUser]
+      .withFieldConst(_.id, UUID.randomUUID())
+      .withFieldComputed(_.username, _.username)
       .transform
   }
 
