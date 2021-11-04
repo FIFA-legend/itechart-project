@@ -132,7 +132,7 @@ class ItemServiceImpl[F[_]: Sync: Logger](
       domainCategories = item.categories.map(categoryDtoToDomain)
 
       id           <- EitherT.liftF(itemRepository.create(domainItem))
-      _            <- EitherT.liftF(categoryRepository.createLinksToItem(domainItem, domainCategories))
+      _            <- EitherT.liftF(categoryRepository.createLinksToItem(domainItem.copy(id = id), domainCategories))
       newDomainItem = domainItem.copy(id = id)
       returnValue  <- EitherT.liftF(itemToDto(newDomainItem))
       _ <- EitherT.liftF(

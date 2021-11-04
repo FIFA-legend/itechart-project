@@ -21,6 +21,8 @@ import scala.util.Try
 
 object ItemRoutes {
 
+  @JsonCodec final case class UserAndFilter(user: FullUserDto, filter: FilterItemDto)
+
   def routes[F[_]: Sync: Logger: JsonDecoder](itemService: ItemService[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
@@ -75,8 +77,6 @@ object ItemRoutes {
 
     def allAvailableItemsForUserFilter: AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of {
       case request @ GET -> Root / "items" / "available" / "filter" as user =>
-        @JsonCodec final case class UserAndFilter(user: FullUserDto, filter: FilterItemDto)
-
         if (!isResourceAvailable(user.value.role, List(Role.Client))) Forbidden()
         else {
           for {
