@@ -18,7 +18,7 @@ import com.itechart.project.services.error.CategoryErrors.CategoryValidationErro
 import com.itechart.project.util.ModelMapper._
 import com.itechart.project.util.RefinedConversion._
 import eu.timepit.refined.collection.NonEmpty
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 import java.sql.SQLIntegrityConstraintViolationException
 

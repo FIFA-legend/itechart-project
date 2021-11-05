@@ -1,7 +1,7 @@
 package com.itechart.project.configuration
 
 import cats.implicits._
-import cats.effect.{Async, Blocker, ContextShift, Resource, Sync}
+import cats.effect.{Async, Resource, Sync}
 import com.itechart.project.configuration.ConfigurationTypes.DatabaseConfiguration
 import doobie.Transactor
 import doobie.hikari.HikariTransactor
@@ -12,18 +12,16 @@ import java.io.File
 
 object DatabaseSettings {
 
-  def transactor[F[_]: ContextShift: Async](
+  def transactor[F[_]: Async](
     configuration: DatabaseConfiguration
   ): Resource[F, Transactor[F]] = for {
-    pool    <- ExecutionContexts.fixedThreadPool[F](10)
-    blocker <- Blocker[F]
+    pool <- ExecutionContexts.fixedThreadPool[F](10)
     transactor <- HikariTransactor.newHikariTransactor[F](
       driverClassName = configuration.driver,
       url             = configuration.url,
       user            = configuration.user,
       pass            = configuration.password,
-      connectEC       = pool,
-      blocker         = blocker
+      connectEC       = pool
     )
   } yield transactor
 

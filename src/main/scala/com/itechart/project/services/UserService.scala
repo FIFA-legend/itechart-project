@@ -6,7 +6,7 @@ import com.itechart.project.dto.user.{FullUserDto, UserDto}
 import com.itechart.project.repository.{CategoryRepository, SupplierRepository, UserRepository}
 import com.itechart.project.services.error.UserErrors.UserValidationError
 import com.itechart.project.services.impl.UserServiceImpl
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 trait UserService[F[_]] {
   def findAllUsers: F[List[FullUserDto]]

@@ -2,13 +2,9 @@ package com.itechart.project.services.error
 
 import com.itechart.project.domain.group.GroupName
 
-import scala.util.control.NoStackTrace
-
 object GroupErrors {
 
-  sealed trait GroupValidationError extends RuntimeException with NoStackTrace {
-    def message: String
-  }
+  sealed trait GroupValidationError extends ValidationError
 
   object GroupValidationError {
     // 404

@@ -2,82 +2,99 @@ package com.itechart.project.routes
 
 import cats.effect.Sync
 import cats.implicits._
+import com.itechart.project.domain.user.Role
+import com.itechart.project.dto.auth.LoggedInUser
 import com.itechart.project.dto.order.OrderDto
 import com.itechart.project.dto.user.FullUserDto
+import com.itechart.project.routes.access.AccessChecker.isResourceAvailable
+import com.itechart.project.routes.response.MarshalResponse.marshalResponse
 import com.itechart.project.services.OrderService
 import com.itechart.project.services.error.OrderErrors.OrderValidationError
-import com.itechart.project.services.error.OrderErrors.OrderValidationError.{
-  InvalidOrderAddress,
-  InvalidOrderCart,
-  InvalidOrderStatus,
-  InvalidOrderUser,
-  OrderCartIsPartOfAnotherOrder,
-  OrderNotFound
-}
-import io.chrisdavenport.log4cats.Logger
+import com.itechart.project.services.error.OrderErrors.OrderValidationError._
 import io.circe.generic.JsonCodec
-import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
+import org.http4s.{AuthedRoutes, Response}
+import org.typelevel.log4cats.Logger
 
 import scala.util.Try
 
 object OrderRoutes {
 
-  def routes[F[_]: Sync: Logger](orderService: OrderService[F]): HttpRoutes[F] = {
+  def securedRoutes[F[_]: Sync: Logger: JsonDecoder](orderService: OrderService[F]): AuthedRoutes[LoggedInUser, F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
-    def allOrders: HttpRoutes[F] = HttpRoutes.of[F] { case GET -> Root / "orders" =>
-      for {
-        orders   <- orderService.findAllOrders
-        response <- Ok(orders)
-      } yield response
+    def allOrders: AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of { case GET -> Root / "orders" as user =>
+      if (!isResourceAvailable(user.value.role, List(Role.Manager, Role.Courier))) Forbidden()
+      else {
+        for {
+          orders   <- orderService.findAllOrders
+          response <- Ok(orders)
+        } yield response
+      }
     }
 
-    def allOrdersByUser: HttpRoutes[F] = HttpRoutes.of[F] { case GET -> Root / "orders" / "user" / LongVar(userId) =>
-      val res = for {
-        found <- orderService.findAllByUser(userId)
-      } yield found
+    def allOrdersByUser: AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of {
+      case GET -> Root / "orders" / "user" as user =>
+        if (!isResourceAvailable(user.value.role, List(Role.Client))) Forbidden()
+        else {
+          val res = for {
+            found <- orderService.findAllByUser(user.value.longId)
+          } yield found
 
-      marshalResponse(res)
+          marshalResponse[F, OrderValidationError, List[OrderDto]](res, orderErrorToHttpResponse)
+        }
     }
 
-    def getOrder: HttpRoutes[F] = HttpRoutes.of[F] { case GET -> Root / "orders" / LongVar(id) =>
-      val res = for {
-        found <- orderService.findById(id)
-      } yield found
+    def getOrder: AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of { case GET -> Root / "orders" / LongVar(id) as user =>
+      if (!isResourceAvailable(user.value.role, List(Role.Client))) Forbidden()
+      else {
+        val res = for {
+          found <- orderService.findById(id)
+        } yield found
 
-      marshalResponse(res)
+        marshalResponse[F, OrderValidationError, OrderDto](res, orderErrorToHttpResponse)
+      }
     }
 
-    def createOrder: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "orders" =>
+    def createOrder: AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of { case request @ POST -> Root / "orders" as user =>
       @JsonCodec final case class OrderAndUser(order: OrderDto, user: FullUserDto)
 
-      val res = for {
-        orderAndUser <- req.as[OrderAndUser]
-        created      <- orderService.createOrder(orderAndUser.order, orderAndUser.user)
-      } yield created
+      if (!isResourceAvailable(user.value.role, List(Role.Client))) Forbidden()
+      else {
+        val res = for {
+          orderAndUser <- request.req.asJsonDecode[OrderAndUser]
+          created      <- orderService.createOrder(orderAndUser.order, orderAndUser.user)
+        } yield created
 
-      marshalResponse(res)
+        marshalResponse[F, OrderValidationError, OrderDto](res, orderErrorToHttpResponse)
+      }
     }
 
-    def updateStatusToAssigned(): HttpRoutes[F] = HttpRoutes.of[F] {
-      case PUT -> Root / "orders" / LongVar(id) / "assigned" =>
-        val res = for {
-          updated <- orderService.updateOrderToAssigned(id)
-        } yield updated
+    def updateStatusToAssigned(): AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of {
+      case PUT -> Root / "orders" / LongVar(id) / "assigned" as user =>
+        if (!isResourceAvailable(user.value.role, List(Role.Courier))) Forbidden()
+        else {
+          val res = for {
+            updated <- orderService.updateOrderToAssigned(id)
+          } yield updated
 
-        marshalResponse(res)
+          marshalResponse[F, OrderValidationError, Boolean](res, orderErrorToHttpResponse)
+        }
     }
 
-    def updateStatusToDelivered(): HttpRoutes[F] = HttpRoutes.of[F] {
-      case PUT -> Root / "orders" / LongVar(id) / "delivered" =>
-        val res = for {
-          updated <- orderService.updateOrderToDelivered(id)
-        } yield updated
+    def updateStatusToDelivered(): AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of {
+      case PUT -> Root / "orders" / LongVar(id) / "delivered" as user =>
+        if (!isResourceAvailable(user.value.role, List(Role.Courier))) Forbidden()
+        else {
+          val res = for {
+            updated <- orderService.updateOrderToDelivered(id)
+          } yield updated
 
-        marshalResponse(res)
+          marshalResponse[F, OrderValidationError, Boolean](res, orderErrorToHttpResponse)
+        }
     }
 
     object LongVar {
@@ -96,20 +113,6 @@ object OrderRoutes {
         case e => BadRequest(e.message)
       }
     }
-
-    def marshalResponse[T](
-      result: F[Either[OrderValidationError, T]]
-    )(
-      implicit E: EntityEncoder[F, T]
-    ): F[Response[F]] =
-      result
-        .flatMap {
-          case Left(error) => orderErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
-          case Right(dto)  => Ok(dto)
-        }
-        .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
-        }
 
     allOrders <+> allOrdersByUser <+> getOrder <+> createOrder <+> updateStatusToAssigned() <+> updateStatusToDelivered()
   }

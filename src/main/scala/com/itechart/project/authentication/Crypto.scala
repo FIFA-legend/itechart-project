@@ -18,7 +18,7 @@ trait Crypto {
 object Crypto {
   def of[F[_]: Sync](passwordSalt: PasswordSalt): F[Crypto] = Sync[F]
     .delay {
-      val random = new SecureRandom()
+      val random = new SecureRandom(passwordSalt.secret.value.getBytes("UTF-8"))
       val bytes  = new Array[Byte](16)
       random.nextBytes(bytes)
       val vector        = new IvParameterSpec(bytes)

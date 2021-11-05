@@ -5,7 +5,7 @@ import com.itechart.project.dto.group.GroupDto
 import com.itechart.project.repository.{GroupRepository, ItemRepository, UserRepository}
 import com.itechart.project.services.error.GroupErrors.GroupValidationError
 import com.itechart.project.services.impl.GroupServiceImpl
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 trait GroupService[F[_]] {
   def findAllGroups: F[List[GroupDto]]

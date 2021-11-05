@@ -5,12 +5,8 @@ import com.itechart.project.domain.supplier.SupplierId
 import enumeratum.{CirceEnum, Enum, EnumEntry}
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.GreaterEqual
-import eu.timepit.refined.refineV
 import eu.timepit.refined.types.string.NonEmptyString
-import io.circe.{Decoder, Encoder}
-import squants.market.{Money, USD}
-
-import scala.util.Try
+import squants.market.Money
 
 object item {
 

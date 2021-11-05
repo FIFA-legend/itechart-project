@@ -2,13 +2,9 @@ package com.itechart.project.services.error
 
 import com.itechart.project.domain.user.{Email, Username}
 
-import scala.util.control.NoStackTrace
-
 object UserErrors {
 
-  sealed trait UserValidationError extends RuntimeException with NoStackTrace {
-    def message: String
-  }
+  sealed trait UserValidationError extends ValidationError
 
   object UserValidationError {
     // 404

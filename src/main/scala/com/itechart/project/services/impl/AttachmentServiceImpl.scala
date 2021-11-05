@@ -1,19 +1,19 @@
 package com.itechart.project.services.impl
 
 import cats.data.EitherT
-import cats.effect.{ContextShift, Sync}
+import cats.effect.Sync
 import cats.implicits._
-import com.itechart.project.domain.attachment.{AttachmentId, DatabaseAttachment}
+import com.itechart.project.domain.attachment.AttachmentId
 import com.itechart.project.repository.AttachmentRepository
 import com.itechart.project.services.AttachmentService
 import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError
 import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError.AttachmentNotFound
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 import java.io.File
 import java.nio.file.{Files, Paths}
 
-class AttachmentServiceImpl[F[_]: Sync: Logger: ContextShift](
+class AttachmentServiceImpl[F[_]: Sync: Logger](
   attachmentRepository: AttachmentRepository[F]
 ) extends AttachmentService[F] {
   private val path = "src/main/resources/attachments"

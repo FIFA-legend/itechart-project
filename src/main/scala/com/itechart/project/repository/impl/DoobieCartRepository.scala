@@ -1,6 +1,6 @@
 package com.itechart.project.repository.impl
 
-import cats.effect.Bracket
+import cats.effect.MonadCancelThrow
 import com.itechart.project.domain.cart.{CartId, DatabaseCart}
 import com.itechart.project.domain.order.DatabaseOrder
 import com.itechart.project.domain.user.DatabaseUser
@@ -10,7 +10,7 @@ import doobie.Transactor
 import doobie.implicits._
 import doobie.util.fragment.Fragment
 
-class DoobieCartRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transactor[F]) extends CartRepository[F] {
+class DoobieCartRepository[F[_]: MonadCancelThrow](transactor: Transactor[F]) extends CartRepository[F] {
   private val selectCart: Fragment = fr"SELECT * FROM carts"
   private val insertCart: Fragment = fr"INSERT INTO carts (quantity, item_id, user_id)"
   private val setCart:    Fragment = fr"UPDATE carts"

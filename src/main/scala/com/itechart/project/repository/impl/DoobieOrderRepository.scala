@@ -1,6 +1,6 @@
 package com.itechart.project.repository.impl
 
-import cats.effect.Bracket
+import cats.effect.MonadCancelThrow
 import com.itechart.project.domain.order.{DatabaseOrder, OrderId}
 import com.itechart.project.domain.user.DatabaseUser
 import com.itechart.project.repository.OrderRepository
@@ -9,7 +9,7 @@ import doobie.Transactor
 import doobie.implicits._
 import doobie.util.fragment.Fragment
 
-class DoobieOrderRepository[F[_]: Bracket[*[_], Throwable]](transactor: Transactor[F]) extends OrderRepository[F] {
+class DoobieOrderRepository[F[_]: MonadCancelThrow](transactor: Transactor[F]) extends OrderRepository[F] {
   private val selectOrder: Fragment = fr"SELECT id, total, address, status, user_id FROM orders"
   private val insertOrder: Fragment = fr"INSERT INTO orders (total, address, user_id)"
   private val setOrder:    Fragment = fr"UPDATE orders"

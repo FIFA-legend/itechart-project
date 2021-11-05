@@ -2,69 +2,78 @@ package com.itechart.project.routes
 
 import cats.effect.Sync
 import cats.implicits._
-import com.itechart.project.dto.cart.SingleCartDto
+import com.itechart.project.domain.user.Role
+import com.itechart.project.dto.auth.LoggedInUser
+import com.itechart.project.dto.cart.{CartDto, SingleCartDto}
 import com.itechart.project.dto.user.FullUserDto
+import com.itechart.project.routes.access.AccessChecker.isResourceAvailable
+import com.itechart.project.routes.response.MarshalResponse.marshalResponse
 import com.itechart.project.services.CartService
 import com.itechart.project.services.error.CartErrors.CartValidationError
-import com.itechart.project.services.error.CartErrors.CartValidationError.{
-  CartIsPartOfOrder,
-  CartItemIsNotAvailable,
-  CartNotFound,
-  CartQuantityIsOutOfBounds,
-  InvalidCartItem,
-  InvalidCartQuantity,
-  InvalidCartUser,
-  ItemIsAlreadyInCart
-}
-import io.chrisdavenport.log4cats.Logger
+import com.itechart.project.services.error.CartErrors.CartValidationError._
 import io.circe.generic.JsonCodec
-import org.http4s.{EntityEncoder, HttpRoutes, Response}
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.circe.CirceEntityCodec.{circeEntityDecoder, circeEntityEncoder}
+import org.http4s.{AuthedRoutes, Response}
+import org.typelevel.log4cats.Logger
 
 import scala.util.Try
 
 object CartRoutes {
 
-  def routes[F[_]: Sync: Logger](cartService: CartService[F]): HttpRoutes[F] = {
+  @JsonCodec final case class CartAndUser(cart: SingleCartDto, user: FullUserDto)
+
+  def securedRoutes[F[_]: Sync: Logger: JsonDecoder](cartService: CartService[F]): AuthedRoutes[LoggedInUser, F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
-    @JsonCodec final case class CartAndUser(cart: SingleCartDto, user: FullUserDto)
+    def currentCart: AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of { case request @ GET -> Root / "carts" as user =>
+      if (!isResourceAvailable(user.value.role, List(Role.Client))) Forbidden()
+      else {
+        val res = for {
+          user <- request.req.asJsonDecode[FullUserDto]
+          cart <- cartService.findByUser(user)
+        } yield cart
 
-    def currentCart: HttpRoutes[F] = HttpRoutes.of[F] { case req @ GET -> Root / "carts" =>
-      val res = for {
-        user <- req.as[FullUserDto]
-        cart <- cartService.findByUser(user)
-      } yield cart
-
-      marshalResponse(res)
+        marshalResponse[F, CartValidationError, CartDto](res, cartErrorToHttpResponse)
+      }
     }
 
-    def createCart: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "carts" =>
-      val res = for {
-        cartAndUser <- req.as[CartAndUser]
-        created     <- cartService.createCart(cartAndUser.cart, cartAndUser.user)
-      } yield created
+    def createCart: AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of { case request @ POST -> Root / "carts" as user =>
+      if (!isResourceAvailable(user.value.role, List(Role.Client))) Forbidden()
+      else {
+        val res = for {
+          cartAndUser <- request.req.asJsonDecode[CartAndUser]
+          created     <- cartService.createCart(cartAndUser.cart, cartAndUser.user)
+        } yield created
 
-      marshalResponse(res)
+        marshalResponse[F, CartValidationError, SingleCartDto](res, cartErrorToHttpResponse)
+      }
     }
 
-    def updateCart(): HttpRoutes[F] = HttpRoutes.of[F] { case req @ PUT -> Root / "carts" =>
-      val res = for {
-        cartAndUser <- req.as[CartAndUser]
-        updated     <- cartService.updateCart(cartAndUser.cart, cartAndUser.user)
-      } yield updated
+    def updateCart(): AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of { case request @ PUT -> Root / "carts" as user =>
+      if (!isResourceAvailable(user.value.role, List(Role.Client))) Forbidden()
+      else {
+        val res = for {
+          cartAndUser <- request.req.asJsonDecode[CartAndUser]
+          updated     <- cartService.updateCart(cartAndUser.cart, cartAndUser.user)
+        } yield updated
 
-      marshalResponse(res)
+        marshalResponse[F, CartValidationError, SingleCartDto](res, cartErrorToHttpResponse)
+      }
     }
 
-    def deleteCart(): HttpRoutes[F] = HttpRoutes.of[F] { case DELETE -> Root / "carts" / LongVar(id) =>
-      val res = for {
-        deleted <- cartService.deleteCart(id)
-      } yield deleted
+    def deleteCart(): AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of {
+      case DELETE -> Root / "carts" / LongVar(id) as user =>
+        if (!isResourceAvailable(user.value.role, List(Role.Client))) Forbidden()
+        else {
+          val res = for {
+            deleted <- cartService.deleteCart(id)
+          } yield deleted
 
-      marshalResponse(res)
+          marshalResponse[F, CartValidationError, Boolean](res, cartErrorToHttpResponse)
+        }
     }
 
     object LongVar {
@@ -85,20 +94,6 @@ object CartRoutes {
         case e => BadRequest(e.message)
       }
     }
-
-    def marshalResponse[T](
-      result: F[Either[CartValidationError, T]]
-    )(
-      implicit E: EntityEncoder[F, T]
-    ): F[Response[F]] =
-      result
-        .flatMap {
-          case Left(error) => cartErrorToHttpResponse(error) <* Logger[F].info("ERROR: " + error.message)
-          case Right(dto)  => Ok(dto)
-        }
-        .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
-        }
 
     currentCart <+> updateCart() <+> createCart <+> deleteCart()
   }

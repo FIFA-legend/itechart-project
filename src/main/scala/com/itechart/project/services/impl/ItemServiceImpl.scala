@@ -21,15 +21,7 @@ import com.itechart.project.repository.{
 }
 import com.itechart.project.services.ItemService
 import com.itechart.project.services.error.ItemErrors.ItemValidationError
-import com.itechart.project.services.error.ItemErrors.ItemValidationError.{
-  InvalidItemAmount,
-  InvalidItemCategory,
-  InvalidItemDescription,
-  InvalidItemName,
-  InvalidItemPrice,
-  InvalidItemSupplier,
-  ItemNotFound
-}
+import com.itechart.project.services.error.ItemErrors.ItemValidationError._
 import com.itechart.project.util.ModelMapper.{
   categoryDomainToDto,
   categoryDtoToDomain,
@@ -41,7 +33,7 @@ import com.itechart.project.util.ModelMapper.{
 }
 import com.itechart.project.util.RefinedConversion.validateParameter
 import eu.timepit.refined.collection.NonEmpty
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 import squants.market.{Money, USD}
 
 import java.io.File
@@ -132,7 +124,7 @@ class ItemServiceImpl[F[_]: Sync: Logger](
       domainCategories = item.categories.map(categoryDtoToDomain)
 
       id           <- EitherT.liftF(itemRepository.create(domainItem))
-      _            <- EitherT.liftF(categoryRepository.createLinksToItem(domainItem, domainCategories))
+      _            <- EitherT.liftF(categoryRepository.createLinksToItem(domainItem.copy(id = id), domainCategories))
       newDomainItem = domainItem.copy(id = id)
       returnValue  <- EitherT.liftF(itemToDto(newDomainItem))
       _ <- EitherT.liftF(

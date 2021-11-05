@@ -5,7 +5,7 @@ import com.itechart.project.dto.category.CategoryDto
 import com.itechart.project.repository.CategoryRepository
 import com.itechart.project.services.error.CategoryErrors.CategoryValidationError
 import com.itechart.project.services.impl.CategoryServiceImpl
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 trait CategoryService[F[_]] {
   def findAllCategories: F[List[CategoryDto]]

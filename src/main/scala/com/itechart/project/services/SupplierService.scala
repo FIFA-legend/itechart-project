@@ -5,7 +5,7 @@ import com.itechart.project.dto.supplier.SupplierDto
 import com.itechart.project.repository.SupplierRepository
 import com.itechart.project.services.error.SupplierErrors.SupplierValidationError
 import com.itechart.project.services.impl.SupplierServiceImpl
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 trait SupplierService[F[_]] {
   def findAllSuppliers: F[List[SupplierDto]]

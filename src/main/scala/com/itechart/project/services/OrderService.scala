@@ -6,7 +6,7 @@ import com.itechart.project.dto.user.FullUserDto
 import com.itechart.project.repository.{CartRepository, ItemRepository, OrderRepository, UserRepository}
 import com.itechart.project.services.error.OrderErrors.OrderValidationError
 import com.itechart.project.services.impl.OrderServiceImpl
-import io.chrisdavenport.log4cats.Logger
+import org.typelevel.log4cats.Logger
 
 trait OrderService[F[_]] {
   def findAllOrders: F[List[OrderDto]]

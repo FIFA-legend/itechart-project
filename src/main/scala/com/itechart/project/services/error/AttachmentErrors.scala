@@ -1,12 +1,8 @@
 package com.itechart.project.services.error
 
-import scala.util.control.NoStackTrace
-
 object AttachmentErrors {
 
-  sealed trait AttachmentFileError extends RuntimeException with NoStackTrace {
-    def message: String
-  }
+  sealed trait AttachmentFileError extends ValidationError
 
   object AttachmentFileError {
     // 404
