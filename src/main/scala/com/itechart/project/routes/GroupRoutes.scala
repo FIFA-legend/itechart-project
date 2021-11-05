@@ -6,13 +6,14 @@ import com.itechart.project.domain.user.Role
 import com.itechart.project.dto.auth.LoggedInUser
 import com.itechart.project.dto.group.GroupDto
 import com.itechart.project.routes.access.AccessChecker.isResourceAvailable
+import com.itechart.project.routes.response.MarshalResponse.marshalResponse
 import com.itechart.project.services.GroupService
 import com.itechart.project.services.error.GroupErrors.GroupValidationError
 import com.itechart.project.services.error.GroupErrors.GroupValidationError._
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.{AuthedRoutes, EntityEncoder, Response}
+import org.http4s.{AuthedRoutes, Response}
 import org.typelevel.log4cats.Logger
 
 import scala.util.Try
@@ -41,7 +42,7 @@ object GroupRoutes {
             foundGroups <- groupService.findAllByUser(userId)
           } yield foundGroups
 
-          marshalResponse(res)
+          marshalResponse[F, GroupValidationError, List[GroupDto]](res, groupErrorToHttpResponse)
         }
     }
 
@@ -53,7 +54,7 @@ object GroupRoutes {
             foundGroups <- groupService.findAllByItem(itemId)
           } yield foundGroups
 
-          marshalResponse(res)
+          marshalResponse[F, GroupValidationError, List[GroupDto]](res, groupErrorToHttpResponse)
         }
     }
 
@@ -64,7 +65,7 @@ object GroupRoutes {
           found <- groupService.findById(id)
         } yield found
 
-        marshalResponse(res)
+        marshalResponse[F, GroupValidationError, GroupDto](res, groupErrorToHttpResponse)
       }
     }
 
@@ -76,7 +77,7 @@ object GroupRoutes {
           created <- groupService.createGroup(group)
         } yield created
 
-        marshalResponse(res)
+        marshalResponse[F, GroupValidationError, GroupDto](res, groupErrorToHttpResponse)
       }
     }
 
@@ -89,7 +90,7 @@ object GroupRoutes {
             updated <- groupService.updateGroup(group)
           } yield updated
 
-          marshalResponse(res)
+          marshalResponse[F, GroupValidationError, GroupDto](res, groupErrorToHttpResponse)
         }
     }
 
@@ -101,7 +102,7 @@ object GroupRoutes {
             isDeleted <- groupService.deleteGroup(id)
           } yield isDeleted
 
-          marshalResponse(res)
+          marshalResponse[F, GroupValidationError, Boolean](res, groupErrorToHttpResponse)
         }
     }
 
@@ -113,7 +114,7 @@ object GroupRoutes {
             isSuccessfullyAdded <- groupService.addUserToGroup(groupId, userId)
           } yield isSuccessfullyAdded
 
-          marshalResponse(res)
+          marshalResponse[F, GroupValidationError, Boolean](res, groupErrorToHttpResponse)
         }
     }
 
@@ -125,7 +126,7 @@ object GroupRoutes {
             isSuccessfullyRemoved <- groupService.removeUserFromGroup(groupId, userId)
           } yield isSuccessfullyRemoved
 
-          marshalResponse(res)
+          marshalResponse[F, GroupValidationError, Boolean](res, groupErrorToHttpResponse)
         }
     }
 
@@ -137,7 +138,7 @@ object GroupRoutes {
             isSuccessfullyAdded <- groupService.addItemToGroup(groupId, itemId)
           } yield isSuccessfullyAdded
 
-          marshalResponse(res)
+          marshalResponse[F, GroupValidationError, Boolean](res, groupErrorToHttpResponse)
         }
     }
 
@@ -149,7 +150,7 @@ object GroupRoutes {
             isSuccessfullyRemoved <- groupService.removeItemFromGroup(groupId, itemId)
           } yield isSuccessfullyRemoved
 
-          marshalResponse(res)
+          marshalResponse[F, GroupValidationError, Boolean](res, groupErrorToHttpResponse)
         }
     }
 
@@ -170,20 +171,6 @@ object GroupRoutes {
         case e => BadRequest(e.message)
       }
     }
-
-    def marshalResponse[T](
-      result: F[Either[GroupValidationError, T]]
-    )(
-      implicit E: EntityEncoder[F, T]
-    ): F[Response[F]] =
-      result
-        .flatMap {
-          case Left(error) => groupErrorToHttpResponse(error) <* Logger[F].warn(error.message)
-          case Right(dto)  => Ok(dto)
-        }
-        .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
-        }
 
     allGroups <+> allGroupsByUser <+> allGroupsByItem <+> getGroup <+> createGroup <+> updateGroup() <+>
       deleteGroup() <+> addUserToGroup() <+> removeUserFromGroup() <+> addItemToGroup() <+> removeItemFromGroup()

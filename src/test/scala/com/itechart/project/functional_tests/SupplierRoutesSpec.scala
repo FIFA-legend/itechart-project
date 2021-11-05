@@ -26,13 +26,15 @@ class SupplierRoutesSpec extends AnyFreeSpec with Matchers {
 
   implicit val userEntityEncoder: EntityEncoder[IO, LoginUser] = jsonEncoderOf[IO, LoginUser]
 
+  val uri = uri"http://localhost:8080/suppliers"
+
   "Supplier routes tests" - {
 
     "Get all suppliers" in {
       BlazeClientBuilder[IO](ExecutionContext.global).resource
         .use(client =>
           for {
-            suppliers <- getRequest[List[SupplierDto]](client, uri"http://localhost:8080/suppliers")
+            suppliers <- getRequest[List[SupplierDto]](client, uri)
             result     = assert(suppliers.size == 2)
           } yield result
         )
@@ -43,7 +45,7 @@ class SupplierRoutesSpec extends AnyFreeSpec with Matchers {
       BlazeClientBuilder[IO](ExecutionContext.global).resource
         .use(client =>
           for {
-            actualSupplier  <- getRequest[SupplierDto](client, uri"http://localhost:8080/suppliers/1")
+            actualSupplier  <- getRequest[SupplierDto](client, uri / "1")
             expectedSupplier = SupplierDto(1, "ASUS")
             result           = assert(actualSupplier == expectedSupplier)
           } yield result
@@ -61,36 +63,26 @@ class SupplierRoutesSpec extends AnyFreeSpec with Matchers {
             responseCreatedSupplier <- simplePostRequestWithAuth[SupplierDto, SupplierDto](
               client,
               createdSupplier,
-              uri"http://localhost:8080/suppliers",
+              uri,
               token
             )
-            id = responseCreatedSupplier.id
-            createdSupplierById <- getRequest[SupplierDto](
-              client,
-              uri"http://localhost:8080/suppliers" / id.toString
-            )
-            _ <- assert(createdSupplierById == responseCreatedSupplier).pure[IO]
+            id                   = responseCreatedSupplier.id
+            createdSupplierById <- getRequest[SupplierDto](client, uri / id.toString)
+            _                   <- assert(createdSupplierById == responseCreatedSupplier).pure[IO]
 
             updatedSupplier = SupplierDto(id, "Xiaomi")
             responseSupplierCategory <- simplePutRequestWithAuth[SupplierDto, SupplierDto](
               client,
               updatedSupplier,
-              uri"http://localhost:8080/suppliers",
+              uri,
               token
             )
-            _ <- assert(responseSupplierCategory == updatedSupplier).pure[IO]
-            updatedSupplierById <- getRequest[SupplierDto](
-              client,
-              uri"http://localhost:8080/suppliers" / id.toString
-            )
-            _ <- assert(updatedSupplierById == updatedSupplier).pure[IO]
+            _                   <- assert(responseSupplierCategory == updatedSupplier).pure[IO]
+            updatedSupplierById <- getRequest[SupplierDto](client, uri / id.toString)
+            _                   <- assert(updatedSupplierById == updatedSupplier).pure[IO]
 
-            isSupplierDeleted <- simpleDeleteRequestWithAuth[Boolean](
-              client,
-              uri"http://localhost:8080/suppliers" / id.toString,
-              token
-            )
-            _ <- assert(isSupplierDeleted).pure[IO]
+            isSupplierDeleted <- simpleDeleteRequestWithAuth[Boolean](client, uri / id.toString, token)
+            _                 <- assert(isSupplierDeleted).pure[IO]
 
             _ <- logout(client, token)
           } yield ()

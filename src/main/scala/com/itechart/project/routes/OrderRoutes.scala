@@ -7,6 +7,7 @@ import com.itechart.project.dto.auth.LoggedInUser
 import com.itechart.project.dto.order.OrderDto
 import com.itechart.project.dto.user.FullUserDto
 import com.itechart.project.routes.access.AccessChecker.isResourceAvailable
+import com.itechart.project.routes.response.MarshalResponse.marshalResponse
 import com.itechart.project.services.OrderService
 import com.itechart.project.services.error.OrderErrors.OrderValidationError
 import com.itechart.project.services.error.OrderErrors.OrderValidationError._
@@ -14,7 +15,7 @@ import io.circe.generic.JsonCodec
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.{AuthedRoutes, EntityEncoder, Response}
+import org.http4s.{AuthedRoutes, Response}
 import org.typelevel.log4cats.Logger
 
 import scala.util.Try
@@ -43,7 +44,7 @@ object OrderRoutes {
             found <- orderService.findAllByUser(user.value.longId)
           } yield found
 
-          marshalResponse(res)
+          marshalResponse[F, OrderValidationError, List[OrderDto]](res, orderErrorToHttpResponse)
         }
     }
 
@@ -54,7 +55,7 @@ object OrderRoutes {
           found <- orderService.findById(id)
         } yield found
 
-        marshalResponse(res)
+        marshalResponse[F, OrderValidationError, OrderDto](res, orderErrorToHttpResponse)
       }
     }
 
@@ -68,7 +69,7 @@ object OrderRoutes {
           created      <- orderService.createOrder(orderAndUser.order, orderAndUser.user)
         } yield created
 
-        marshalResponse(res)
+        marshalResponse[F, OrderValidationError, OrderDto](res, orderErrorToHttpResponse)
       }
     }
 
@@ -80,7 +81,7 @@ object OrderRoutes {
             updated <- orderService.updateOrderToAssigned(id)
           } yield updated
 
-          marshalResponse(res)
+          marshalResponse[F, OrderValidationError, Boolean](res, orderErrorToHttpResponse)
         }
     }
 
@@ -92,7 +93,7 @@ object OrderRoutes {
             updated <- orderService.updateOrderToDelivered(id)
           } yield updated
 
-          marshalResponse(res)
+          marshalResponse[F, OrderValidationError, Boolean](res, orderErrorToHttpResponse)
         }
     }
 
@@ -112,20 +113,6 @@ object OrderRoutes {
         case e => BadRequest(e.message)
       }
     }
-
-    def marshalResponse[T](
-      result: F[Either[OrderValidationError, T]]
-    )(
-      implicit E: EntityEncoder[F, T]
-    ): F[Response[F]] =
-      result
-        .flatMap {
-          case Left(error) => orderErrorToHttpResponse(error) <* Logger[F].warn(error.message)
-          case Right(dto)  => Ok(dto)
-        }
-        .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
-        }
 
     allOrders <+> allOrdersByUser <+> getOrder <+> createOrder <+> updateStatusToAssigned() <+> updateStatusToDelivered()
   }

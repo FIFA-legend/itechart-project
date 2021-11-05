@@ -7,6 +7,7 @@ import com.itechart.project.dto.auth.LoggedInUser
 import com.itechart.project.dto.item.{FilterItemDto, ItemDto}
 import com.itechart.project.dto.user.FullUserDto
 import com.itechart.project.routes.access.AccessChecker.isResourceAvailable
+import com.itechart.project.routes.response.MarshalResponse.marshalResponse
 import com.itechart.project.services.ItemService
 import com.itechart.project.services.error.ItemErrors.ItemValidationError
 import com.itechart.project.services.error.ItemErrors.ItemValidationError._
@@ -14,7 +15,7 @@ import io.circe.generic.JsonCodec
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.{AuthedRoutes, EntityEncoder, HttpRoutes, Response}
+import org.http4s.{AuthedRoutes, HttpRoutes, Response}
 import org.typelevel.log4cats.Logger
 
 import scala.util.Try
@@ -47,7 +48,7 @@ object ItemRoutes {
         found <- itemService.findById(id)
       } yield found
 
-      marshalResponse(res)
+      marshalResponse[F, ItemValidationError, ItemDto](res, itemErrorToHttpResponse)
     }
 
     object LongVar {
@@ -95,7 +96,7 @@ object ItemRoutes {
           created <- itemService.createItem(item)
         } yield created
 
-        marshalResponse(res)
+        marshalResponse[F, ItemValidationError, ItemDto](res, itemErrorToHttpResponse)
       }
     }
 
@@ -107,7 +108,7 @@ object ItemRoutes {
           updated <- itemService.updateItem(item)
         } yield updated
 
-        marshalResponse(res)
+        marshalResponse[F, ItemValidationError, ItemDto](res, itemErrorToHttpResponse)
       }
     }
 
@@ -119,7 +120,7 @@ object ItemRoutes {
             deleted <- itemService.deleteItem(id)
           } yield deleted
 
-          marshalResponse(res)
+          marshalResponse[F, ItemValidationError, Boolean](res, itemErrorToHttpResponse)
         }
     }
 
@@ -142,24 +143,6 @@ object ItemRoutes {
 
       case e => BadRequest(e.message)
     }
-  }
-
-  def marshalResponse[F[_]: Sync: Logger, T](
-    result: F[Either[ItemValidationError, T]]
-  )(
-    implicit E: EntityEncoder[F, T]
-  ): F[Response[F]] = {
-    val dsl = new Http4sDsl[F] {}
-    import dsl._
-
-    result
-      .flatMap {
-        case Left(error) => itemErrorToHttpResponse(error) <* Logger[F].warn(error.message)
-        case Right(dto)  => Ok(dto)
-      }
-      .handleErrorWith { ex =>
-        InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
-      }
   }
 
 }

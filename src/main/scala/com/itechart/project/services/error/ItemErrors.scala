@@ -1,12 +1,8 @@
 package com.itechart.project.services.error
 
-import scala.util.control.NoStackTrace
-
 object ItemErrors {
 
-  sealed trait ItemValidationError extends RuntimeException with NoStackTrace {
-    def message: String
-  }
+  sealed trait ItemValidationError extends ValidationError
 
   object ItemValidationError {
     // 404

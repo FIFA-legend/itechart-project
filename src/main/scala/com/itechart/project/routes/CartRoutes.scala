@@ -4,9 +4,10 @@ import cats.effect.Sync
 import cats.implicits._
 import com.itechart.project.domain.user.Role
 import com.itechart.project.dto.auth.LoggedInUser
-import com.itechart.project.dto.cart.SingleCartDto
+import com.itechart.project.dto.cart.{CartDto, SingleCartDto}
 import com.itechart.project.dto.user.FullUserDto
 import com.itechart.project.routes.access.AccessChecker.isResourceAvailable
+import com.itechart.project.routes.response.MarshalResponse.marshalResponse
 import com.itechart.project.services.CartService
 import com.itechart.project.services.error.CartErrors.CartValidationError
 import com.itechart.project.services.error.CartErrors.CartValidationError._
@@ -14,18 +15,18 @@ import io.circe.generic.JsonCodec
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.{AuthedRoutes, EntityEncoder, Response}
+import org.http4s.{AuthedRoutes, Response}
 import org.typelevel.log4cats.Logger
 
 import scala.util.Try
 
 object CartRoutes {
 
+  @JsonCodec final case class CartAndUser(cart: SingleCartDto, user: FullUserDto)
+
   def securedRoutes[F[_]: Sync: Logger: JsonDecoder](cartService: CartService[F]): AuthedRoutes[LoggedInUser, F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
-
-    @JsonCodec final case class CartAndUser(cart: SingleCartDto, user: FullUserDto)
 
     def currentCart: AuthedRoutes[LoggedInUser, F] = AuthedRoutes.of { case request @ GET -> Root / "carts" as user =>
       if (!isResourceAvailable(user.value.role, List(Role.Client))) Forbidden()
@@ -35,7 +36,7 @@ object CartRoutes {
           cart <- cartService.findByUser(user)
         } yield cart
 
-        marshalResponse(res)
+        marshalResponse[F, CartValidationError, CartDto](res, cartErrorToHttpResponse)
       }
     }
 
@@ -47,7 +48,7 @@ object CartRoutes {
           created     <- cartService.createCart(cartAndUser.cart, cartAndUser.user)
         } yield created
 
-        marshalResponse(res)
+        marshalResponse[F, CartValidationError, SingleCartDto](res, cartErrorToHttpResponse)
       }
     }
 
@@ -59,7 +60,7 @@ object CartRoutes {
           updated     <- cartService.updateCart(cartAndUser.cart, cartAndUser.user)
         } yield updated
 
-        marshalResponse(res)
+        marshalResponse[F, CartValidationError, SingleCartDto](res, cartErrorToHttpResponse)
       }
     }
 
@@ -71,7 +72,7 @@ object CartRoutes {
             deleted <- cartService.deleteCart(id)
           } yield deleted
 
-          marshalResponse(res)
+          marshalResponse[F, CartValidationError, Boolean](res, cartErrorToHttpResponse)
         }
     }
 
@@ -93,20 +94,6 @@ object CartRoutes {
         case e => BadRequest(e.message)
       }
     }
-
-    def marshalResponse[T](
-      result: F[Either[CartValidationError, T]]
-    )(
-      implicit E: EntityEncoder[F, T]
-    ): F[Response[F]] =
-      result
-        .flatMap {
-          case Left(error) => cartErrorToHttpResponse(error) <* Logger[F].warn(error.message)
-          case Right(dto)  => Ok(dto)
-        }
-        .handleErrorWith { ex =>
-          InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
-        }
 
     currentCart <+> updateCart() <+> createCart <+> deleteCart()
   }

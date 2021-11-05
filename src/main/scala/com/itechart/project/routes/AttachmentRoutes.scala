@@ -5,17 +5,15 @@ import cats.implicits._
 import com.itechart.project.domain.user.Role
 import com.itechart.project.dto.auth.LoggedInUser
 import com.itechart.project.routes.access.AccessChecker.isResourceAvailable
-import com.itechart.project.services.{AttachmentService, CategoryService}
+import com.itechart.project.routes.response.MarshalResponse.marshalResponse
+import com.itechart.project.services.AttachmentService
 import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError
-import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError.{
-  AttachmentNotFound,
-  InvalidItemAttachment
-}
+import com.itechart.project.services.error.AttachmentErrors.AttachmentFileError._
 import fs2.io.file.Files
-import org.http4s.dsl.Http4sDsl
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.circe.JsonDecoder
-import org.http4s.{AuthedRoutes, EntityEncoder, HttpRoutes, Response, StaticFile}
+import org.http4s.dsl.Http4sDsl
+import org.http4s.{AuthedRoutes, HttpRoutes, Response, StaticFile}
 import org.typelevel.log4cats.Logger
 
 import scala.util.Try
@@ -59,14 +57,14 @@ object AttachmentRoutes {
             deleted <- attachmentService.deleteFile(id)
           } yield deleted
 
-          marshalResponse(res)
+          marshalResponse[F, AttachmentFileError, Boolean](res, attachmentErrorToHttpResponse)
         }
     }
 
     deleteCategory()
   }
 
-  def attachmentErrorToHttpResponse[F[_]: Sync: Logger](error: AttachmentFileError): F[Response[F]] = {
+  private def attachmentErrorToHttpResponse[F[_]: Sync: Logger](error: AttachmentFileError): F[Response[F]] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -76,24 +74,6 @@ object AttachmentRoutes {
 
       case e => BadRequest(e.message)
     }
-  }
-
-  def marshalResponse[F[_]: Sync: Logger, T](
-    result: F[Either[AttachmentFileError, T]]
-  )(
-    implicit E: EntityEncoder[F, T]
-  ): F[Response[F]] = {
-    val dsl = new Http4sDsl[F] {}
-    import dsl._
-
-    result
-      .flatMap {
-        case Left(error) => attachmentErrorToHttpResponse(error) <* Logger[F].warn(error.message)
-        case Right(dto)  => Ok(dto)
-      }
-      .handleErrorWith { ex =>
-        InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
-      }
   }
 
 }

@@ -26,13 +26,15 @@ class CategoryRoutesSpec extends AnyFreeSpec with Matchers {
 
   implicit val userEntityEncoder: EntityEncoder[IO, LoginUser] = jsonEncoderOf[IO, LoginUser]
 
+  val uri = uri"http://localhost:8080/categories"
+
   "Category routes tests" - {
 
     "Get all categories" in {
       BlazeClientBuilder[IO](ExecutionContext.global).resource
         .use(client =>
           for {
-            categories <- getRequest[List[CategoryDto]](client, uri"http://localhost:8080/categories")
+            categories <- getRequest[List[CategoryDto]](client, uri)
             result      = assert(categories.size == 3)
           } yield result
         )
@@ -43,7 +45,7 @@ class CategoryRoutesSpec extends AnyFreeSpec with Matchers {
       BlazeClientBuilder[IO](ExecutionContext.global).resource
         .use(client =>
           for {
-            actualCategory  <- getRequest[CategoryDto](client, uri"http://localhost:8080/categories/1")
+            actualCategory  <- getRequest[CategoryDto](client, uri / "1")
             expectedCategory = CategoryDto(1, "Laptops")
             result           = assert(actualCategory == expectedCategory)
           } yield result
@@ -61,36 +63,26 @@ class CategoryRoutesSpec extends AnyFreeSpec with Matchers {
             responseCreatedCategory <- simplePostRequestWithAuth[CategoryDto, CategoryDto](
               client,
               createdCategory,
-              uri"http://localhost:8080/categories",
+              uri,
               token
             )
-            id = responseCreatedCategory.id
-            createdCategoryById <- getRequest[CategoryDto](
-              client,
-              uri"http://localhost:8080/categories" / id.toString
-            )
-            _ <- assert(createdCategoryById == responseCreatedCategory).pure[IO]
+            id                   = responseCreatedCategory.id
+            createdCategoryById <- getRequest[CategoryDto](client, uri / id.toString)
+            _                   <- assert(createdCategoryById == responseCreatedCategory).pure[IO]
 
             updatedCategory = CategoryDto(id, "Vacuum cleaner")
             responseUpdatedCategory <- simplePutRequestWithAuth[CategoryDto, CategoryDto](
               client,
               updatedCategory,
-              uri"http://localhost:8080/categories",
+              uri,
               token
             )
-            _ <- assert(responseUpdatedCategory == updatedCategory).pure[IO]
-            updatedCategoryById <- getRequest[CategoryDto](
-              client,
-              uri"http://localhost:8080/categories" / id.toString
-            )
-            _ <- assert(updatedCategoryById == updatedCategory).pure[IO]
+            _                   <- assert(responseUpdatedCategory == updatedCategory).pure[IO]
+            updatedCategoryById <- getRequest[CategoryDto](client, uri / id.toString)
+            _                   <- assert(updatedCategoryById == updatedCategory).pure[IO]
 
-            isCategoryDeleted <- simpleDeleteRequestWithAuth[Boolean](
-              client,
-              uri"http://localhost:8080/categories" / id.toString,
-              token
-            )
-            _ <- assert(isCategoryDeleted).pure[IO]
+            isCategoryDeleted <- simpleDeleteRequestWithAuth[Boolean](client, uri / id.toString, token)
+            _                 <- assert(isCategoryDeleted).pure[IO]
 
             _ <- logout(client, token)
           } yield ()

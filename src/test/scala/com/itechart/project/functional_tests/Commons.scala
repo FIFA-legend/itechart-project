@@ -93,6 +93,25 @@ object Commons extends Matchers {
     } yield response
   }
 
+  def postRequestWithAuth[A](
+    client: Client[IO],
+    path:   Uri,
+    body:   A,
+    token:  JwtToken
+  )(
+    implicit i: EntityEncoder[IO, A]
+  ): IO[Response[IO]] = {
+    for {
+      response <- client.toHttpApp.run(
+        Request(
+          method  = Method.POST,
+          uri     = path,
+          headers = Headers(Header.Raw(CIString("Authorization"), s"Bearer ${token.value}"))
+        ).withEntity(body)
+      )
+    } yield response
+  }
+
   def simplePutRequestWithAuth[A, B](
     client: Client[IO],
     body:   B,
@@ -136,6 +155,20 @@ object Commons extends Matchers {
       case None       => actualResponse.body.compile.toVector.map(_ shouldBe empty)
       case Some(body) => actualResponse.as[A].map(_ shouldBe body)
     }
+    _ <- expectedResponseCookie match {
+      case None                 => IO.unit
+      case Some(responseCookie) => IO(actualResponse.cookies should contain(responseCookie))
+    }
+  } yield ()).unsafeRunSync()
+
+  def checkResponseWithoutBody[A](
+    actualResponse:         Response[IO],
+    expectedStatus:         Status,
+    expectedResponseCookie: Option[ResponseCookie] = None,
+  )(
+    implicit decoder: EntityDecoder[IO, A],
+  ): Unit = (for {
+    _ <- IO(actualResponse.status shouldBe expectedStatus)
     _ <- expectedResponseCookie match {
       case None                 => IO.unit
       case Some(responseCookie) => IO(actualResponse.cookies should contain(responseCookie))

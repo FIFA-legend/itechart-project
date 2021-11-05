@@ -6,13 +6,14 @@ import com.itechart.project.domain.user.Role
 import com.itechart.project.dto.auth.LoggedInUser
 import com.itechart.project.dto.supplier.SupplierDto
 import com.itechart.project.routes.access.AccessChecker.isResourceAvailable
+import com.itechart.project.routes.response.MarshalResponse.marshalResponse
 import com.itechart.project.services.SupplierService
 import com.itechart.project.services.error.SupplierErrors.SupplierValidationError
 import com.itechart.project.services.error.SupplierErrors.SupplierValidationError._
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.{AuthedRoutes, EntityEncoder, HttpRoutes, Response}
+import org.http4s.{AuthedRoutes, HttpRoutes, Response}
 import org.typelevel.log4cats.Logger
 
 import scala.util.Try
@@ -35,7 +36,7 @@ object SupplierRoutes {
         found <- supplierService.findById(id)
       } yield found
 
-      marshalResponse(res)
+      marshalResponse[F, SupplierValidationError, SupplierDto](res, supplierErrorToHttpResponse)
     }
 
     object LongVar {
@@ -60,7 +61,7 @@ object SupplierRoutes {
             created  <- supplierService.createSupplier(supplier)
           } yield created
 
-          marshalResponse(res)
+          marshalResponse[F, SupplierValidationError, SupplierDto](res, supplierErrorToHttpResponse)
         }
     }
 
@@ -73,7 +74,7 @@ object SupplierRoutes {
             updated  <- supplierService.updateSupplier(supplier)
           } yield updated
 
-          marshalResponse(res)
+          marshalResponse[F, SupplierValidationError, SupplierDto](res, supplierErrorToHttpResponse)
         }
     }
 
@@ -85,7 +86,7 @@ object SupplierRoutes {
             deleted <- supplierService.deleteSupplier(id)
           } yield deleted
 
-          marshalResponse(res)
+          marshalResponse[F, SupplierValidationError, Boolean](res, supplierErrorToHttpResponse)
         }
     }
 
@@ -105,24 +106,6 @@ object SupplierRoutes {
 
       case e => BadRequest(e.message)
     }
-  }
-
-  private def marshalResponse[F[_]: Sync: Logger, T](
-    result: F[Either[SupplierValidationError, T]]
-  )(
-    implicit E: EntityEncoder[F, T]
-  ): F[Response[F]] = {
-    val dsl = new Http4sDsl[F] {}
-    import dsl._
-
-    result
-      .flatMap {
-        case Left(error) => supplierErrorToHttpResponse(error) <* Logger[F].warn(error.message)
-        case Right(dto)  => Ok(dto)
-      }
-      .handleErrorWith { ex =>
-        InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
-      }
   }
 
 }

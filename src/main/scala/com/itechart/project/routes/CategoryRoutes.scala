@@ -6,13 +6,14 @@ import com.itechart.project.domain.user.Role
 import com.itechart.project.dto.auth.LoggedInUser
 import com.itechart.project.dto.category.CategoryDto
 import com.itechart.project.routes.access.AccessChecker.isResourceAvailable
+import com.itechart.project.routes.response.MarshalResponse.marshalResponse
 import com.itechart.project.services.CategoryService
 import com.itechart.project.services.error.CategoryErrors.CategoryValidationError
 import com.itechart.project.services.error.CategoryErrors.CategoryValidationError._
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.circe.{toMessageSyntax, JsonDecoder}
 import org.http4s.dsl.Http4sDsl
-import org.http4s.{AuthedRoutes, EntityEncoder, HttpRoutes, Response}
+import org.http4s.{AuthedRoutes, HttpRoutes, Response}
 import org.typelevel.log4cats.Logger
 
 import scala.util.Try
@@ -35,7 +36,7 @@ object CategoryRoutes {
         found <- categoryService.findById(id)
       } yield found
 
-      marshalResponse(res)
+      marshalResponse[F, CategoryValidationError, CategoryDto](res, categoryErrorToHttpResponse)
     }
 
     object LongVar {
@@ -60,7 +61,7 @@ object CategoryRoutes {
             created  <- categoryService.createCategory(category)
           } yield created
 
-          marshalResponse(res)
+          marshalResponse[F, CategoryValidationError, CategoryDto](res, categoryErrorToHttpResponse)
         }
     }
 
@@ -73,7 +74,7 @@ object CategoryRoutes {
             updated  <- categoryService.updateCategory(category)
           } yield updated
 
-          marshalResponse(res)
+          marshalResponse[F, CategoryValidationError, CategoryDto](res, categoryErrorToHttpResponse)
         }
     }
 
@@ -85,7 +86,7 @@ object CategoryRoutes {
             deleted <- categoryService.deleteCategory(id)
           } yield deleted
 
-          marshalResponse(res)
+          marshalResponse[F, CategoryValidationError, Boolean](res, categoryErrorToHttpResponse)
         }
     }
 
@@ -105,24 +106,6 @@ object CategoryRoutes {
 
       case e => BadRequest(e.message)
     }
-  }
-
-  private def marshalResponse[F[_]: Sync: Logger, T](
-    result: F[Either[CategoryValidationError, T]]
-  )(
-    implicit E: EntityEncoder[F, T]
-  ): F[Response[F]] = {
-    val dsl = new Http4sDsl[F] {}
-    import dsl._
-
-    result
-      .flatMap {
-        case Left(error) => categoryErrorToHttpResponse(error) <* Logger[F].warn(error.message)
-        case Right(dto)  => Ok(dto)
-      }
-      .handleErrorWith { ex =>
-        InternalServerError(ex.getMessage) <* Logger[F].error(ex.getMessage)
-      }
   }
 
 }

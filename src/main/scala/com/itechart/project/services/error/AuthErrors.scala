@@ -2,13 +2,9 @@ package com.itechart.project.services.error
 
 import com.itechart.project.domain.user.Username
 
-import scala.util.control.NoStackTrace
-
 object AuthErrors {
 
-  sealed trait UserAuthenticationError extends RuntimeException with NoStackTrace {
-    def message: String
-  }
+  sealed trait UserAuthenticationError extends ValidationError
 
   object UserAuthenticationError {
     final case class InvalidPassword(username: Username) extends UserAuthenticationError {

@@ -36,13 +36,15 @@ class ItemRoutesSpec extends AnyFreeSpec with Matchers {
 
   implicit val userEntityEncoder: EntityEncoder[IO, LoginUser] = jsonEncoderOf[IO, LoginUser]
 
+  val uri = uri"http://localhost:8080/items"
+
   "Item routes tests" - {
 
     "Get all items" in {
       BlazeClientBuilder[IO](ExecutionContext.global).resource
         .use(client =>
           for {
-            items <- getRequest[List[ItemDto]](client, uri"http://localhost:8080/items")
+            items <- getRequest[List[ItemDto]](client, uri)
             result = assert(items.size == 3)
           } yield result
         )
@@ -54,11 +56,7 @@ class ItemRoutesSpec extends AnyFreeSpec with Matchers {
         .use { client =>
           val filter = FilterItemDto(None, None, Some(600), Some(1500), List(), List())
           for {
-            items <- getRequestWithBody[List[ItemDto], FilterItemDto](
-              client,
-              uri"http://localhost:8080/items/filter",
-              filter
-            )
+            items <- getRequestWithBody[List[ItemDto], FilterItemDto](client, uri / "filter", filter)
             result = assert(items.size == 2)
           } yield result
         }
@@ -81,7 +79,7 @@ class ItemRoutesSpec extends AnyFreeSpec with Matchers {
 
             items <- getRequestWithAuthAndBody[List[ItemDto], FullUserDto](
               client,
-              uri"http://localhost:8080/items/available",
+              uri / "available",
               user,
               token
             )
@@ -110,7 +108,7 @@ class ItemRoutesSpec extends AnyFreeSpec with Matchers {
 
             items <- getRequestWithAuthAndBody[List[ItemDto], UserAndFilter](
               client,
-              uri"http://localhost:8080/items/available/filter",
+              uri / "available" / "filter",
               UserAndFilter(user, filter),
               token
             )
@@ -126,7 +124,7 @@ class ItemRoutesSpec extends AnyFreeSpec with Matchers {
       BlazeClientBuilder[IO](ExecutionContext.global).resource
         .use(client =>
           for {
-            actualItem <- getRequest[ItemDto](client, uri"http://localhost:8080/items/1")
+            actualItem <- getRequest[ItemDto](client, uri / "1")
             expectedItem = ItemDto(
               1,
               "ASUS TUF GAMING FX504",
@@ -161,18 +159,10 @@ class ItemRoutesSpec extends AnyFreeSpec with Matchers {
               List(CategoryDto(3, "Tablets")),
               List()
             )
-            responseCreatedItem <- simplePostRequestWithAuth[ItemDto, ItemDto](
-              client,
-              createdItem,
-              uri"http://localhost:8080/items",
-              token
-            )
-            id = responseCreatedItem.id
-            createdItemById <- getRequest[ItemDto](
-              client,
-              uri"http://localhost:8080/items" / id.toString
-            )
-            _ <- assert(createdItemById == responseCreatedItem).pure[IO]
+            responseCreatedItem <- simplePostRequestWithAuth[ItemDto, ItemDto](client, createdItem, uri, token)
+            id                   = responseCreatedItem.id
+            createdItemById     <- getRequest[ItemDto](client, uri / id.toString)
+            _                   <- assert(createdItemById == responseCreatedItem).pure[IO]
 
             updatedItem = createdItem
               .copy(
@@ -182,25 +172,13 @@ class ItemRoutesSpec extends AnyFreeSpec with Matchers {
                 price       = 1550,
                 categories  = List(CategoryDto(1, "Laptops"))
               )
-            responseItemCategory <- simplePutRequestWithAuth[ItemDto, ItemDto](
-              client,
-              updatedItem,
-              uri"http://localhost:8080/items",
-              token
-            )
-            _ <- assert(responseItemCategory == updatedItem).pure[IO]
-            updatedItemById <- getRequest[ItemDto](
-              client,
-              uri"http://localhost:8080/items" / id.toString
-            )
-            _ <- assert(updatedItemById == updatedItem).pure[IO]
+            responseItemCategory <- simplePutRequestWithAuth[ItemDto, ItemDto](client, updatedItem, uri, token)
+            _                    <- assert(responseItemCategory == updatedItem).pure[IO]
+            updatedItemById      <- getRequest[ItemDto](client, uri / id.toString)
+            _                    <- assert(updatedItemById == updatedItem).pure[IO]
 
-            isItemDeleted <- simpleDeleteRequestWithAuth[Boolean](
-              client,
-              uri"http://localhost:8080/items" / id.toString,
-              token
-            )
-            _ <- assert(isItemDeleted).pure[IO]
+            isItemDeleted <- simpleDeleteRequestWithAuth[Boolean](client, uri / id.toString, token)
+            _             <- assert(isItemDeleted).pure[IO]
 
             _ <- logout(client, token)
           } yield ()
