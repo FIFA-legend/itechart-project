@@ -52,11 +52,7 @@ object ConfigurationTypes {
 
   final case class RedisURI(value: NonEmptyString)
 
-  final case class JwtSecretKeyConfiguration(secret: NonEmptyString)
-
   final case class JwtAccessTokenKeyConfiguration(secret: NonEmptyString)
-
-  final case class JwtClaimConfiguration(secret: NonEmptyString)
 
   final case class PasswordSalt(secret: NonEmptyString)
 

@@ -10,8 +10,6 @@ import scala.concurrent.duration.DurationInt
 
 object AuthenticationSettings {
 
-  implicit val secretKeyShow:   Show[JwtSecretKeyConfiguration]      = Show.show(_.secret.value)
-  implicit val jwtClaimShow:    Show[JwtClaimConfiguration]          = Show.show(_.secret.value)
   implicit val accessTokenShow: Show[JwtAccessTokenKeyConfiguration] = Show.show(_.secret.value)
   implicit val saltShow:        Show[PasswordSalt]                   = Show.show(_.secret.value)
 
