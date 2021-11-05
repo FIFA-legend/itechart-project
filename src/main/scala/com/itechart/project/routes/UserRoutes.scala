@@ -137,9 +137,13 @@ object UserRoutes {
     import dsl._
 
     error match {
-      case e: UserNotFound  => NotFound(e.message)
-      case e: UsernameInUse => Conflict(e.message)
-      case e: EmailInUse    => Conflict(e.message)
+      case e: UserNotFound         => NotFound(e.message)
+      case e: UsernameInUse        => Conflict(e.message)
+      case e: EmailInUse           => Conflict(e.message)
+      case e: SupplierNotFound     => NotFound(e.message)
+      case e: CategoryNotFound     => NotFound(e.message)
+      case e: SupplierIsSubscribed => Conflict(e.message)
+      case e: CategoryIsSubscribed => Conflict(e.message)
       case e @ InvalidUsernameSymbols => BadRequest(e.message)
       case e @ InvalidUsernameLength  => BadRequest(e.message)
       case e @ InvalidPassword        => BadRequest(e.message)

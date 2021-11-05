@@ -21,15 +21,7 @@ import com.itechart.project.repository.{
 }
 import com.itechart.project.services.ItemService
 import com.itechart.project.services.error.ItemErrors.ItemValidationError
-import com.itechart.project.services.error.ItemErrors.ItemValidationError.{
-  InvalidItemAmount,
-  InvalidItemCategory,
-  InvalidItemDescription,
-  InvalidItemName,
-  InvalidItemPrice,
-  InvalidItemSupplier,
-  ItemNotFound
-}
+import com.itechart.project.services.error.ItemErrors.ItemValidationError._
 import com.itechart.project.util.ModelMapper.{
   categoryDomainToDto,
   categoryDtoToDomain,

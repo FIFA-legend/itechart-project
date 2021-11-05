@@ -2,15 +2,15 @@ package com.itechart.project.repository.impl.meta
 
 import com.itechart.project.domain.cart.Quantity
 import com.itechart.project.domain.item.{Amount, AvailabilityStatus}
-import com.itechart.project.domain.order.{DeliveryStatus, OrderId}
+import com.itechart.project.domain.order.DeliveryStatus
 import com.itechart.project.domain.user.{Email, Role}
 import com.itechart.project.util.RefinedConversion.convertParameter
 import com.itechart.project.util.SnakeStyleConversion.{normalizedSnakeCase, snakeToCamel}
 import doobie.Meta
 import eu.timepit.refined.W
-import eu.timepit.refined.predicates.all.NonEmpty
 import eu.timepit.refined.auto._
 import eu.timepit.refined.numeric.GreaterEqual
+import eu.timepit.refined.predicates.all.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
 import eu.timepit.refined.types.string.NonEmptyString
 import squants.market.{Money, USD}

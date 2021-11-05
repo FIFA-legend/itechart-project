@@ -11,19 +11,7 @@ import com.itechart.project.dto.user.{FullUserDto, UserDto}
 import com.itechart.project.repository.{CategoryRepository, SupplierRepository, UserRepository}
 import com.itechart.project.services.UserService
 import com.itechart.project.services.error.UserErrors.UserValidationError
-import com.itechart.project.services.error.UserErrors.UserValidationError.{
-  CategoryIsSubscribed,
-  CategoryNotFound,
-  EmailInUse,
-  InvalidEmail,
-  InvalidPassword,
-  InvalidUsernameLength,
-  InvalidUsernameSymbols,
-  SupplierIsSubscribed,
-  SupplierNotFound,
-  UserNotFound,
-  UsernameInUse
-}
+import com.itechart.project.services.error.UserErrors.UserValidationError._
 import com.itechart.project.util.ModelMapper.{categoryDomainToDto, supplierDomainToDto, userDomainToFullUserDto}
 import com.itechart.project.util.RefinedConversion.validateParameter
 import eu.timepit.refined.W

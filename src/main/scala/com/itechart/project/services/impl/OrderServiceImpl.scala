@@ -12,14 +12,7 @@ import com.itechart.project.dto.user.FullUserDto
 import com.itechart.project.repository.{CartRepository, ItemRepository, OrderRepository, UserRepository}
 import com.itechart.project.services.OrderService
 import com.itechart.project.services.error.OrderErrors.OrderValidationError
-import com.itechart.project.services.error.OrderErrors.OrderValidationError.{
-  InvalidOrderAddress,
-  InvalidOrderCart,
-  InvalidOrderStatus,
-  InvalidOrderUser,
-  OrderCartIsPartOfAnotherOrder,
-  OrderNotFound
-}
+import com.itechart.project.services.error.OrderErrors.OrderValidationError._
 import com.itechart.project.util.ModelMapper.{cartsDomainToCartDto, itemDomainToSimpleItemDto, orderDomainToDto}
 import com.itechart.project.util.RefinedConversion.validateParameter
 import eu.timepit.refined.collection.NonEmpty

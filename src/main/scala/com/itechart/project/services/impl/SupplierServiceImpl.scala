@@ -8,13 +8,7 @@ import com.itechart.project.dto.supplier.SupplierDto
 import com.itechart.project.repository.SupplierRepository
 import com.itechart.project.services.SupplierService
 import com.itechart.project.services.error.SupplierErrors.SupplierValidationError
-import com.itechart.project.services.error.SupplierErrors.SupplierValidationError.{
-  InvalidSupplierName,
-  SupplierInUse,
-  SupplierIsConnected,
-  SupplierNotFound,
-  UnsupportedSupplierError
-}
+import com.itechart.project.services.error.SupplierErrors.SupplierValidationError._
 import com.itechart.project.util.ModelMapper._
 import com.itechart.project.util.RefinedConversion.validateParameter
 import eu.timepit.refined.collection.NonEmpty
